@@ -15,7 +15,7 @@ const SEA_DIR := Vector3(0.1205, -0.9903, 0.0696)
 const LOCATIONS := [
 	{
 		"id": "origin",
-		"title": "Origin",
+		"title": "Лес мотивации",
 		"description": "Лес целей - трекер жизни для целей и мотивации.",
 		"interactionLabel": "E - Открыть кейс",
 		"caseUrl": "https://mil3on.github.io/leondesign/origin-case/",
@@ -25,7 +25,7 @@ const LOCATIONS := [
 	},
 	{
 		"id": "domtn",
-		"title": "DOM TN",
+		"title": "Центр заявок",
 		"description": "Квартал заявок - личный кабинет и дашборд обработки заявок клиентов.",
 		"interactionLabel": "E - Открыть кейс",
 		"caseUrl": "https://mil3on.github.io/leondesign/b2b-case/",
@@ -35,7 +35,7 @@ const LOCATIONS := [
 	},
 	{
 		"id": "smtu",
-		"title": "SMTU",
+		"title": "Корабельный университет",
 		"description": "Корабельный университет - лендинг для приёмной кампании.",
 		"interactionLabel": "E - Открыть кейс",
 		"caseUrl": "https://www.behance.net/gallery/255621599/UNIVERSITY-LANDING-DESIGN-SMTU-EdTech-UXUI-",
@@ -45,7 +45,7 @@ const LOCATIONS := [
 	},
 	{
 		"id": "itmo",
-		"title": "ITMO NIOKTR",
+		"title": "Квартал науки",
 		"description": "Сад науки - редизайн сайта научного конкурса.",
 		"interactionLabel": "E - Открыть кейс",
 		"caseUrl": "https://www.behance.net/gallery/221766175/UXUI-redizajn-sajta-nauchnogo-konkursa",
@@ -55,7 +55,7 @@ const LOCATIONS := [
 	},
 	{
 		"id": "dragontrans",
-		"title": "Dragontrans",
+		"title": "Китайский причал",
 		"description": "Порт маршрутов - брендинг и сайт логистической компании.",
 		"interactionLabel": "E - Открыть кейс",
 		"caseUrl": "https://www.behance.net/gallery/247988945/DRAGONTRANS-Logistics-company-Website-design",
@@ -66,7 +66,7 @@ const LOCATIONS := [
 	},
 	{
 		"id": "book",
-		"title": "Book At Home",
+		"title": "Библиотека",
 		"description": "Сад историй - сервис подписки для поиска и аренды книг.",
 		"interactionLabel": "E - Открыть кейс",
 		"caseUrl": "https://www.behance.net/gallery/218805071/servis-Book-at-home-UXUI-landing",
@@ -76,10 +76,10 @@ const LOCATIONS := [
 	},
 	{
 		"id": "shots",
-		"title": "Shots",
+		"title": "Галерея концептов",
 		"description": "Галерея интерфейсов - коллекция UI-концептов.",
 		"interactionLabel": "E - Открыть кейс",
-		"caseUrl": "SHOTS_CASE_URL",
+		"caseUrl": "https://mil3on.github.io/leondesign/#shots",
 		"position": Vector3(-0.6634, -0.6428, 0.383),
 		"accentColor": Color(0.30, 0.55, 1.00),
 		"builder": "shots",

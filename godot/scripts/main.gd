@@ -14,8 +14,10 @@ const Fonts := preload("res://starter/ui-fonts/fonts.gd")
 const LIB := "res://assets/library/survival-nature/"
 const MACHINA := preload("res://assets/fonts/PPNeueMachina-Ultrabold.otf")
 const MANROPE := preload("res://assets/fonts/Manrope.ttf")
-const AMBIENT_STREAM := preload("res://assets/audio/birds-wind-ambient.ogg")
-const STEP_STREAM := preload("res://assets/audio/grass-step.ogg")
+const AMBIENT_STREAM := preload("res://assets/audio/background-sounds.mp3")
+const STEP_STREAM := preload("res://assets/audio/footstep-on-grass.mp3")
+const USE_STREAM := preload("res://assets/audio/use-case.mp3")
+const LOCK_ICON := preload("res://assets/ui/lock.svg")
 
 const DEFAULT_INTERACT_RADIUS := 2.5
 
@@ -35,6 +37,8 @@ var _time := 0.0
 var _flat_dirs: Array[Vector3] = []
 var _ambient_audio: AudioStreamPlayer
 var _step_audio: AudioStreamPlayer
+var _use_audio: AudioStreamPlayer
+var _opening_case := false
 
 
 func _ready() -> void:
@@ -86,8 +90,13 @@ func _setup_audio() -> void:
 	_step_audio = AudioStreamPlayer.new()
 	_step_audio.name = "GrassSteps"
 	_step_audio.stream = STEP_STREAM
-	_step_audio.volume_db = -16.0
+	_step_audio.volume_db = -13.0
 	add_child(_step_audio)
+	_use_audio = AudioStreamPlayer.new()
+	_use_audio.name = "CaseUse"
+	_use_audio.stream = USE_STREAM
+	_use_audio.volume_db = -10.0
+	add_child(_use_audio)
 
 
 # ---------- helpers ----------
@@ -199,6 +208,7 @@ func _make_location(d: Dictionary) -> void:
 		"spins": k.spins,
 		"bobs": k.bobs,
 		"plaque": plaque,
+		"dir": up,
 	})
 
 
@@ -248,7 +258,9 @@ func _sink(n: Node3D, y: float) -> float:
 func _make_plaque(root: Node3D, d: Dictionary) -> Dictionary:
 	var desc := String(d["description"])
 	var cut := desc.find(" - ")
-	var place := desc.substr(0, cut) if cut >= 0 else desc
+	# The location title is the name the visitor sees in both the HUD and its plaque.
+	# Keep the longer case description below it as the explanatory text.
+	var place := String(d["title"])
 	var summary := desc.substr(cut + 3) if cut >= 0 else ""
 	var holder := Node3D.new()
 	holder.name = "CasePlaque"
@@ -275,14 +287,23 @@ func _make_plaque(root: Node3D, d: Dictionary) -> Dictionary:
 	closed.offset_bottom = -145
 	closed.add_theme_stylebox_override("panel", _plaque_style(Color(1, 1, 1, 0.96), 90, 24))
 	viewport.add_child(closed)
+	var closed_row := HBoxContainer.new()
+	closed_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	closed_row.add_theme_constant_override("separation", 16)
+	closed.add_child(closed_row)
+	var lock := TextureRect.new()
+	lock.texture = LOCK_ICON
+	lock.custom_minimum_size = Vector2(34, 34)
+	lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	closed_row.add_child(lock)
 	var closed_text := Label.new()
-	closed_text.text = "🔒  " + place
-	closed_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	closed_text.text = place
 	closed_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	closed_text.add_theme_font_override("font", MACHINA)
 	closed_text.add_theme_font_size_override("font_size", 36)
 	closed_text.add_theme_color_override("font_color", Color("161719"))
-	closed.add_child(closed_text)
+	closed_row.add_child(closed_text)
 
 	var opened := PanelContainer.new()
 	opened.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -318,7 +339,7 @@ func _make_plaque(root: Node3D, d: Dictionary) -> Dictionary:
 	body.add_theme_font_size_override("font_size", 23)
 	body.add_theme_color_override("font_color", Color("202227"))
 	content.add_child(body)
-	return {"closed": closed, "opened": opened}
+	return {"holder": holder, "closed": closed, "opened": opened}
 
 
 func _plaque_style(color: Color, radius: int, pad: int) -> StyleBoxFlat:
@@ -475,6 +496,12 @@ func _process(delta: float) -> void:
 			var speed := float(b.get_meta("bob_speed"))
 			var phase := float(b.get_meta("bob_phase"))
 			b.position = base + Vector3(0.0, sin(_time * speed + phase) * amp, 0.0)
+		# Signs on the far side of the sphere are explicitly hidden. The small positive
+		# threshold keeps them from popping up before the player reaches the horizon.
+		var plaque: Dictionary = loc["plaque"]
+		if plaque:
+			var player_dir := (player.global_position - planet.global_position).normalized()
+			plaque["holder"].visible = player_dir.dot(loc["dir"]) > 0.04
 
 	var best := -1
 	var best_d := 0.0
@@ -489,12 +516,8 @@ func _process(delta: float) -> void:
 	else:
 		hud.hide_prompt()
 
-	# Keep the local sky and sun upright wherever the player stands on the planet.
-	var pb := player.global_basis.orthonormalized()
-	if _sun:
-		_sun.global_basis = pb * _sun_basis0
-	if _env:
-		_env.sky_rotation = pb.get_euler()
+	# The sun is fixed in world space: travelling around the planet naturally leads
+	# from its warm day side to the dark night side.
 	if _clouds:
 		_clouds.rotate(Vector3(0.2, 1.0, 0.1).normalized(), delta * 0.015)
 
@@ -512,6 +535,8 @@ func _on_open_requested() -> void:
 
 ## Opens the case study in a new browser tab. No overlay, no scene change.
 func _open(i: int) -> void:
+	if _opening_case:
+		return
 	if player and player.has_method("play_interaction"):
 		player.play_interaction()
 	var loc := _locations[i]
@@ -523,7 +548,10 @@ func _open(i: int) -> void:
 	if not url.begins_with("http"):
 		hud.flash("Ссылка для \"" + String(data["title"]) + "\" пока не указана (scripts/case_studies.gd)")
 		return
-	OS.shell_open(url)
+	_opening_case = true
+	player.input_enabled = false
+	if _use_audio:
+		_use_audio.play()
 	_discovered[data["id"]] = true
 	hud.set_discovered(_discovered.size(), CaseStudies.LOCATIONS.size())
 	hud.set_case_progress(CaseStudies.LOCATIONS, _discovered)
@@ -531,7 +559,11 @@ func _open(i: int) -> void:
 	if plaque:
 		plaque["closed"].visible = false
 		plaque["opened"].visible = true
-	hud.flash("Открываю кейс " + String(data["title"]) + "...")
+	hud.flash("Открываю кейс через 3 секунды...")
+	await get_tree().create_timer(3.0).timeout
+	OS.shell_open(url)
+	player.input_enabled = true
+	_opening_case = false
 
 
 func _on_player_step(world_pos: Vector3, up: Vector3, running: bool) -> void:

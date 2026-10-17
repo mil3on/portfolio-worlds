@@ -7,6 +7,9 @@ signal open_requested
 
 const MACHINA := preload("res://assets/fonts/PPNeueMachina-Ultrabold.otf")
 const MANROPE := preload("res://assets/fonts/Manrope.ttf")
+const CHECK_ICON := preload("res://assets/ui/figma-check.svg")
+const CIRCLE_ICON := preload("res://assets/ui/figma-circle.svg")
+const MENU_ORDER := ["origin", "dragontrans", "itmo", "smtu", "domtn", "book", "shots"]
 
 ## Show the touch button even on desktop, for testing the mobile layout.
 @export var force_mobile_button := false
@@ -56,19 +59,52 @@ func _label(text: String, size: int, color: Color, font: Font) -> Label:
 
 
 func _build_corner() -> void:
+	var menu_root := Control.new()
+	menu_root.position = Vector2(24, 24)
+	menu_root.size = Vector2(292, 390)
+	menu_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(menu_root)
+	var blur := ColorRect.new()
+	blur.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	blur.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var blur_material := ShaderMaterial.new()
+	blur_material.shader = preload("res://assets/ui/menu_blur.gdshader")
+	blur.material = blur_material
+	menu_root.add_child(blur)
 	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", _style(Color(1, 1, 1, 0.76), 28, 19))
-	box.position = Vector2(24, 24)
-	add_child(box)
+	box.add_theme_stylebox_override("panel", _style(Color(1, 1, 1, 0.18), 28, 0))
+	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	menu_root.add_child(box)
 	var v := VBoxContainer.new()
 	box.add_child(v)
-	v.add_theme_constant_override("separation", 7)
-	v.add_child(_label("ИЗУЧИТЕ ВСЕ КЕЙСЫ", 18, Color("101113"), MACHINA))
-	_counter = _label("0 / 7 открыто", 14, Color("70747d"), MANROPE)
-	v.add_child(_counter)
+	v.add_theme_constant_override("separation", 0)
+	var header := PanelContainer.new()
+	header.custom_minimum_size = Vector2(292, 112)
+	header.add_theme_stylebox_override("panel", _menu_header_style())
+	v.add_child(header)
+	var header_row := HBoxContainer.new()
+	header.add_child(header_row)
+	var header_title := _label("Осмотрите\nвсе локации", 27, Color.WHITE, MACHINA)
+	header_title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header_title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_title.add_theme_constant_override("line_spacing", -4)
+	header_row.add_child(header_title)
+	_counter = _label("0/7", 31, Color.WHITE, MANROPE)
+	_counter.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	header_row.add_child(_counter)
+	var margins := MarginContainer.new()
+	margins.add_theme_constant_override("margin_left", 20)
+	margins.add_theme_constant_override("margin_right", 20)
+	margins.add_theme_constant_override("margin_top", 22)
+	margins.add_theme_constant_override("margin_bottom", 22)
+	v.add_child(margins)
+	var body := VBoxContainer.new()
+	body.add_theme_constant_override("separation", 12)
+	margins.add_child(body)
 	_progress = VBoxContainer.new()
-	_progress.add_theme_constant_override("separation", 4)
-	v.add_child(_progress)
+	_progress.add_theme_constant_override("separation", 10)
+	body.add_child(_progress)
 
 	var hint := _label("WASD — ходьба   Shift — бег   Пробел — прыжок   E — открыть", 14, Color(0.05, 0.06, 0.08, 0.86), MANROPE)
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
@@ -77,6 +113,20 @@ func _build_corner() -> void:
 	hint.offset_bottom = -20
 	hint.offset_left = 24
 	add_child(hint)
+
+
+func _menu_header_style() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = Color("050505")
+	s.corner_radius_top_left = 0
+	s.corner_radius_bottom_left = 0
+	s.corner_radius_top_right = 28
+	s.corner_radius_bottom_right = 28
+	s.content_margin_left = 20
+	s.content_margin_right = 22
+	s.content_margin_top = 14
+	s.content_margin_bottom = 14
+	return s
 
 
 func _build_prompt() -> void:
@@ -157,7 +207,7 @@ func _build_title_card() -> void:
 
 
 func set_discovered(n: int, total: int) -> void:
-	_counter.text = "%d / %d открыто" % [n, total]
+	_counter.text = "%d/%d" % [n, total]
 
 
 func set_case_progress(cases: Array, discovered: Dictionary) -> void:
@@ -165,13 +215,33 @@ func set_case_progress(cases: Array, discovered: Dictionary) -> void:
 		return
 	for child in _progress.get_children():
 		child.queue_free()
+	var by_id := {}
 	for data: Dictionary in cases:
+		by_id[data["id"]] = data
+	for id: String in MENU_ORDER:
+		if not by_id.has(id):
+			continue
+		var data: Dictionary = by_id[id]
 		var done := discovered.has(data["id"])
-		var row := Label.new()
-		row.text = ("✓  " if done else "○  ") + String(data["title"])
-		row.add_theme_font_override("font", MANROPE)
-		row.add_theme_font_size_override("font_size", 15)
-		row.add_theme_color_override("font_color", Color("3d835f") if done else Color("8b8e95"))
+		var row := Control.new()
+		row.custom_minimum_size = Vector2(252, 24)
+		var icon := TextureRect.new()
+		icon.texture = CHECK_ICON if done else CIRCLE_ICON
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.position = Vector2(0, 4)
+		icon.size = Vector2(16, 16)
+		row.add_child(icon)
+		var text := _label(String(data["title"]), 20, Color("666666") if done else Color("171719"), MANROPE)
+		text.position = Vector2(27, 0)
+		text.size = Vector2(220, 24)
+		row.add_child(text)
+		if done:
+			var strike := ColorRect.new()
+			strike.color = Color("666666")
+			strike.position = Vector2(27, 13)
+			strike.size = Vector2(210, 1)
+			row.add_child(strike)
 		_progress.add_child(row)
 
 

@@ -11,7 +11,8 @@ animation_sources = {
 	"walk": "res://characters/leon/animations_mixamo/clips/walk.res",
 	"run": "res://characters/leon/animations_mixamo/clips/run.res",
 	"jump": "res://characters/leon/animations_mixamo/clips/jump.res",
-	"run_jump": "res://characters/leon/animations_mixamo/clips/run_jump.res"
+	"run_jump": "res://characters/leon/animations_mixamo/clips/run_jump.res",
+	"interact": "res://characters/leon/animations_mixamo/clips/wave.res"
 }
 
 [node name="Rig" parent="." unique_id=1468987119 instance=ExtResource("2_rig")]

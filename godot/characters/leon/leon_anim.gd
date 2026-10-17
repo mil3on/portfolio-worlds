@@ -22,6 +22,7 @@ extends Node3D
 	"run": "StandardRun",
 	"jump": "Jump",
 	"run_jump": "RunningJump",
+	"interact": "Waving",
 	"fall": "Jump",
 }
 ## Action -> compact Animation resource exported from the supplied FBX. Every file uses the
