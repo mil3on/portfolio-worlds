@@ -1,18 +1,17 @@
 [gd_scene format=3 uid="uid://cuykv63gh0njp"]
 
 [ext_resource type="Script" uid="uid://t7y72iyuhdgx" path="res://characters/leon/leon_anim.gd" id="1_anim"]
-[ext_resource type="PackedScene" uid="uid://bdy7l7pwdb3y4" path="res://characters/leon/rig.glb" id="2_rig"]
+[ext_resource type="PackedScene" path="res://characters/leon/animations_mixamo/Idle main.fbx" id="2_rig"]
 
 [node name="Leon" type="Node3D" unique_id=324926967]
 script = ExtResource("1_anim")
-clip_sources = {
-	"idle": "res://characters/leon/animations/Happy Idle.fbx",
-	"walk": "res://characters/leon/animations/Swagger Walk.fbx",
-	"run": "res://characters/leon/animations/Running.fbx",
-	"jump": "res://characters/leon/animations/Jump in place.fbx",
-	"run_jump": "res://characters/leon/animations/Running Jump.fbx",
-	"interact": "res://characters/leon/animations/use.fbx"
+animation_sources = {
+	"idle_alt_1": "res://characters/leon/animations_mixamo/clips/idle_alt_1.res",
+	"idle_alt_2": "res://characters/leon/animations_mixamo/clips/idle_alt_2.res",
+	"walk": "res://characters/leon/animations_mixamo/clips/walk.res",
+	"run": "res://characters/leon/animations_mixamo/clips/run.res",
+	"jump": "res://characters/leon/animations_mixamo/clips/jump.res",
+	"run_jump": "res://characters/leon/animations_mixamo/clips/run_jump.res"
 }
 
 [node name="Rig" parent="." unique_id=1468987119 instance=ExtResource("2_rig")]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)

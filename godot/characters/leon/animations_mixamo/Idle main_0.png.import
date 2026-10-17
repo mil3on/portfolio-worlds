@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://d6rf2fpi4a1m"
-path="res://.godot/imported/Swagger Walk_0.png-dc23046375a31e68842e0880418eed2c.ctex"
+uid="uid://ce4jh4ndldf34"
+path="res://.godot/imported/Idle main_0.png-5185e9af25c37361b3879d24e2f37b02.ctex"
 metadata={
 "vram_texture": false
 }
@@ -13,8 +13,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://characters/leon/animations/Swagger Walk_0.png"
-dest_files=["res://.godot/imported/Swagger Walk_0.png-dc23046375a31e68842e0880418eed2c.ctex"]
+source_file="res://characters/leon/animations_mixamo/Idle main_0.png"
+dest_files=["res://.godot/imported/Idle main_0.png-5185e9af25c37361b3879d24e2f37b02.ctex"]
 
 [params]
 

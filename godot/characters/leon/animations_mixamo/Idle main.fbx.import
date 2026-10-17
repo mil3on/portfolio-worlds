@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://bj6oqoly1gb06"
-path="res://.godot/imported/Swagger Walk.fbx-d03d650d212b43799d0334ee4b954397.scn"
+uid="uid://cp580x67llv47"
+path="res://.godot/imported/Idle main.fbx-1f63911a66a1c6c13197550efd0f55b0.scn"
 
 [deps]
 
-source_file="res://characters/leon/animations/Swagger Walk.fbx"
-dest_files=["res://.godot/imported/Swagger Walk.fbx-d03d650d212b43799d0334ee4b954397.scn"]
+source_file="res://characters/leon/animations_mixamo/Idle main.fbx"
+dest_files=["res://.godot/imported/Idle main.fbx-1f63911a66a1c6c13197550efd0f55b0.scn"]
 
 [params]
 
