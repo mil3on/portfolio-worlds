@@ -1,0 +1,28 @@
+[gd_scene format=3 uid="uid://7frmeo0n0ycp"]
+
+[ext_resource type="Script" uid="uid://k7hbcx107nag" path="res://scripts/main.gd" id="1_main"]
+[ext_resource type="PackedScene" path="res://starter/look-cozy-day/look.tscn" id="2_look"]
+[ext_resource type="PackedScene" path="res://starter/post-bloom-punch/bloom_punch.tscn" id="3_bloom"]
+[ext_resource type="Script" uid="uid://cvw0r73dhmc1h" path="res://scripts/planet.gd" id="4_planet"]
+[ext_resource type="PackedScene" uid="uid://cv4nbt2b541uy" path="res://scenes/player.tscn" id="5_player"]
+[ext_resource type="Script" uid="uid://cbul2gknly0ua" path="res://scripts/hud.gd" id="6_hud"]
+
+[node name="Main" type="Node3D" unique_id=1318797327]
+script = ExtResource("1_main")
+
+[node name="Look" parent="." unique_id=2143661139 instance=ExtResource("2_look")]
+
+[node name="BloomPunch" parent="." unique_id=980657654 instance=ExtResource("3_bloom")]
+preset = "soft"
+intensity_scale = 0.5
+
+[node name="Planet" type="StaticBody3D" parent="." unique_id=694892347]
+script = ExtResource("4_planet")
+
+[node name="Decor" type="Node3D" parent="." unique_id=299019395]
+
+[node name="Player" parent="." unique_id=1323030710 instance=ExtResource("5_player")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 30.5, 0)
+
+[node name="HUD" type="CanvasLayer" parent="." unique_id=994182709]
+script = ExtResource("6_hud")

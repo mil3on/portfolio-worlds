@@ -1,0 +1,14 @@
+[gd_scene format=3 uid="uid://cuykv63gh0njp"]
+
+[ext_resource type="Script" uid="uid://t7y72iyuhdgx" path="res://characters/leon/leon_anim.gd" id="1_anim"]
+[ext_resource type="PackedScene" uid="uid://bdy7l7pwdb3y4" path="res://characters/leon/rig.glb" id="2_rig"]
+
+[node name="Leon" type="Node3D" unique_id=324926967]
+script = ExtResource("1_anim")
+clip_sources = {
+"walk": "res://characters/leon/walk.glb",
+"run": "res://characters/leon/run.glb"
+}
+
+[node name="Rig" parent="." unique_id=1468987119 instance=ExtResource("2_rig")]
+transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, 0, 0, 0)

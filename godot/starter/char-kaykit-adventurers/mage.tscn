@@ -1,0 +1,47 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://starter/char-kaykit-adventurers/character_anim.gd" id="1_anim"]
+[ext_resource type="PackedScene" path="res://starter/char-kaykit-adventurers/models/Mage.glb" id="2_model"]
+
+[node name="Mage" type="Node3D"]
+script = ExtResource("1_anim")
+clips = {
+"idle": "Idle",
+"walk": "Walking_A",
+"run": "Running_A",
+"jump": "Jump_Start",
+"fall": "Jump_Idle",
+"land": "Jump_Land",
+"hit": "Hit_A",
+"death": "Death_A",
+"cheer": "Cheer",
+"block": "Blocking",
+"dodge": "Dodge_Forward",
+"interact": "Interact",
+"pickup": "PickUp",
+"sit": "Sit_Chair_Idle",
+"sit_floor": "Sit_Floor_Idle",
+"punch": "Unarmed_Melee_Attack_Punch_A",
+"kick": "Unarmed_Melee_Attack_Kick",
+"throw": "Throw",
+"cast": "Spellcast_Shoot",
+"cast_long": "Spellcast_Long",
+"shoot": "1H_Ranged_Shoot",
+"slash": "1H_Melee_Attack_Slice_Diagonal",
+"chop": "1H_Melee_Attack_Chop",
+"stab": "1H_Melee_Attack_Stab",
+"heavy": "2H_Melee_Attack_Chop",
+"spin": "2H_Melee_Attack_Spin",
+"use": "Use_Item",
+"death_b": "Death_B",
+"attack": "Spellcast_Shoot"
+}
+loop_clips = PackedStringArray("Blocking", "Sit_Chair_Idle", "Sit_Floor_Idle", "Spellcasting", "Lie_Idle", "2H_Melee_Idle", "Running_B", "Walking_B", "Walking_Backwards")
+walk_clip_speed = 0.75
+run_clip_speed = 3.3
+run_threshold = 2.0
+show_props = PackedStringArray("2H_Staff")
+optional_props = PackedStringArray("Spellbook", "Spellbook_open", "1H_Wand", "2H_Staff")
+
+[node name="Model" parent="." instance=ExtResource("2_model")]
+transform = Transform3D(-0.78, 0, 0, 0, 0.78, 0, 0, 0, -0.78, 0, 0, 0)

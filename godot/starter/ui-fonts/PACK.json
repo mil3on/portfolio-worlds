@@ -1,0 +1,52 @@
+{
+ "id": "ui-fonts",
+ "title": "UI fonts: Manrope, Fraunces, Dela Gothic One (OFL)",
+ "kind": "font",
+ "genres": [
+  "any"
+ ],
+ "summary": "Three OFL fonts plus a helper script: Manrope variable sans (weights 200-800) for HUD text and numbers, Fraunces variable display serif (weights 100-900, optical size) for titles, Dela Gothic One heavy poster face for arcade titles and big numbers.",
+ "use_when": "Any game with on-screen text: titles, HUD numbers, buttons, dialogue. Required by ui-kit-core, ui-juice, ui-cinematic and ui-horror.",
+ "how_to_use": "In code: const Fonts := preload(\"res://starter/ui-fonts/fonts.gd\"); label.add_theme_font_override(\"font\", Fonts.sans(800)) (Manrope extra bold) or Fonts.display(700) (Fraunces bold) or Fonts.poster() (Dela Gothic One). Fonts.label(text, size, color, font, outline_px) returns a ready Label. In scenes or Themes, the .ttf files load directly as FontFile (res://starter/ui-fonts/Manrope.ttf). Variable weights only through FontVariation (the helper does it). Keep the *-OFL.txt files next to the fonts.",
+ "entry": [
+  "res://starter/ui-fonts/fonts.gd",
+  "res://starter/ui-fonts/Manrope.ttf",
+  "res://starter/ui-fonts/Fraunces.ttf",
+  "res://starter/ui-fonts/DelaGothicOne-Regular.ttf"
+ ],
+ "contents": [
+  {
+   "path": "fonts.gd",
+   "what": "static helpers sans(weight, spacing), display(weight, spacing, opsz), display_unique() (for tweening letter spacing), poster(), label(); cached FontVariations"
+  },
+  {
+   "path": "Manrope.ttf",
+   "what": "Manrope variable sans, wght 200-800, Latin"
+  },
+  {
+   "path": "Fraunces.ttf",
+   "what": "Fraunces variable serif, wght 100-900, opsz 9-144, SOFT axis, Latin"
+  },
+  {
+   "path": "DelaGothicOne-Regular.ttf",
+   "what": "Dela Gothic One, one heavy weight, Latin + kana + some kanji"
+  },
+  {
+   "path": "Manrope-OFL.txt, Fraunces-OFL.txt, DelaGothicOne-OFL.txt",
+   "what": "SIL Open Font License 1.1 texts (must ship with the fonts)"
+  }
+ ],
+ "deps": [],
+ "scale": "font sizes are pixels; the UI packs use a 1600x900 design canvas",
+ "license": "ofl",
+ "credit": "Manrope (c) 2018 The Manrope Project Authors; Fraunces (c) 2018 The Fraunces Project Authors; Dela Gothic One (c) 2020 The Dela Gothic Project Authors. SIL Open Font License 1.1.",
+ "provenance": "Google Fonts (ofl/manrope, ofl/fraunces) via grow-your-garden party/fonts; Dela Gothic One via sakura-rally assets/fonts",
+ "source": "grow-your-garden@6867b4f:party/fonts/{Manrope,Fraunces}.ttf + sakura-rally@f44d523:assets/fonts/DelaGothicOne-Regular.ttf",
+ "verified": {
+  "compatibility": true,
+  "forward_plus": true,
+  "notes": "Imported clean; demo.tscn rendered in Compatibility and Forward+ (identical); variable weights 200-800 / 100-900 visible; fresh project import + render clean, no script errors. Demo scripts re-show their own CanvasLayer every frame because the shelf capture tool hides UI layers between shots; harmless in a game. v1.1 (2026-10-03, owner rule: building blocks only): demo scene and demo scripts moved out; the remaining pieces are unchanged."
+ },
+ "wow": 3,
+ "bytes": 672139
+}

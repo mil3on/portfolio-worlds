@@ -1,0 +1,31 @@
+[gd_scene format=3 uid="uid://cv4nbt2b541uy"]
+
+[ext_resource type="Script" uid="uid://gneiijprq5jv" path="res://scripts/player.gd" id="1_player"]
+[ext_resource type="PackedScene" uid="uid://cuykv63gh0njp" path="res://characters/leon/leon.tscn" id="2_model"]
+
+[sub_resource type="CapsuleShape3D" id="Capsule_player"]
+radius = 0.35
+height = 1.8
+
+[node name="Player" type="CharacterBody3D" unique_id=477329851]
+script = ExtResource("1_player")
+
+[node name="Collision" type="CollisionShape3D" parent="." unique_id=1973875133]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+shape = SubResource("Capsule_player")
+
+[node name="Model" parent="." unique_id=1202637623 instance=ExtResource("2_model")]
+
+[node name="CameraYaw" type="Node3D" parent="." unique_id=1839985713]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.55, 0)
+
+[node name="CameraPitch" type="Node3D" parent="CameraYaw" unique_id=1645658345]
+transform = Transform3D(1, 0, 0, 0, 0.96105546, 0.27635565, 0, -0.27635565, 0.96105546, 0, 0, 0)
+
+[node name="SpringArm3D" type="SpringArm3D" parent="CameraYaw/CameraPitch" unique_id=447349026]
+spring_length = 4.2
+margin = 0.2
+
+[node name="Camera3D" type="Camera3D" parent="CameraYaw/CameraPitch/SpringArm3D" unique_id=1027815419]
+current = true
+fov = 65.0

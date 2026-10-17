@@ -1,0 +1,57 @@
+{
+  "id": "shader-healing-aura",
+  "title": "Healing and holy aura: glowing rune circle on the ground, light column, rising sparkles",
+  "kind": "shader",
+  "genres": [
+    "fantasy",
+    "rpg",
+    "action",
+    "adventure",
+    "survival",
+    "moba",
+    "co-op"
+  ],
+  "summary": "A spell circle on the ground (bright outer ring, a band of runes turning slowly, an inner hexagram sigil turning the other way, a soft glowing disc, pulse waves running outward, sparkling dust), a soft light column rising from it, CPUParticles3D sparkles drifting up (plus signs for heal, four-point stars for the others) and a coloured light. Visual only. Presets heal (green), holy (gold), mana (blue), arcane (violet), rage (red), frost (cyan).",
+  "use_when": "Healing spells, a healing fountain or shrine, a save point, a resurrection / respawn point, buff or mana zones, a summoning or ritual circle, a quest objective marker, a boss AoE telegraph (rage preset), a campfire rest spot, an area-of-effect spell.",
+  "how_to_use": "var a := preload(\"res://starter/shader-healing-aura/healing_aura.tscn\").instantiate(); add_child(a); a.position = spot_on_ground; a.radius = 2.0 (m); a.preset = \"heal\" (heal, holy, mana, arcane, rage, frost). Origin = ground centre (the circle sits 3 cm above it). a.pulse(1.5) flashes the circle and column (call it from your own code, e.g. when a heal lands); the aura detects nothing itself. Exports: beam (true), beam_height (4 m), intensity (0..2), sparkles (true), light_energy (1.6). The ground shader alone: aura_ground.gdshader on a PlaneMesh (UV 0..1 spans the circle). Needs Environment glow_enabled = true for the glow.",
+  "entry": [
+    "res://starter/shader-healing-aura/healing_aura.tscn",
+    "res://starter/shader-healing-aura/healing_aura.gd",
+    "res://starter/shader-healing-aura/aura_ground.gdshader"
+  ],
+  "contents": [
+    {
+      "path": "healing_aura.tscn",
+      "what": "HealingAura (Node3D): Circle plane, Beam cylinder, Motes (CPUParticles3D), Light"
+    },
+    {
+      "path": "healing_aura.gd",
+      "what": "presets, radius, beam, intensity, sparkles, light_energy, pulse()"
+    },
+    {
+      "path": "aura_ground.gdshader",
+      "what": "ground circle: outer ring, rotating rune band, counter-rotating sigil, disc, pulse waves, dust"
+    },
+    {
+      "path": "aura_beam.gdshader",
+      "what": "light column for an open CylinderMesh: soft core, rising streaks, bright foot, fade at the top"
+    },
+    {
+      "path": "aura_spark.gdshader",
+      "what": "plus-sign / star sparkle billboard"
+    }
+  ],
+  "deps": [],
+  "scale": "metres; radius is the circle radius (0.5-4 m tuned)",
+  "license": "summer",
+  "credit": "",
+  "provenance": "original shaders and scripts written by Summer for the shelf (s06-fantasy); no third-party code (the Eclipse divine VFX of unknown licence was not used)",
+  "source": "new (cloud-starter-shelf s06-fantasy, 2026-10-03)",
+  "verified": {
+    "compatibility": true,
+    "forward_plus": true,
+    "notes": "demo.tscn rendered in Compatibility and Forward+ (Summer 4.7.2, macOS, 1280x720 saves) with 0 SCRIPT ERROR / shader compile errors; fresh_test (clean cloud project, pack only) imports and renders in Compatibility with no errors. Not run in a real browser (WebGL2) or on the cloud's Linux/Mesa GL; shaders avoid compute and long loops. Before/after on Poly Haven CC0 models under the CC0 qwantani_dusk_2 HDRI (evidence only, never shipped): work/s06-fantasy/compare/shader-healing-aura.jpg. v1.1 (2026-10-03, owner rule: building blocks only): demo scene and demo scripts moved out; also moved out: heal-zone trigger (Area3D, tick signals); edited without re-opening in Godot (static checks only): healing_aura.gd, healing_aura.tscn."
+  },
+  "wow": 5,
+  "bytes": 33858
+}

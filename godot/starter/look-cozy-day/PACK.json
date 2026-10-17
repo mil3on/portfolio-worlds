@@ -1,0 +1,46 @@
+{
+  "id": "look-cozy-day",
+  "title": "Cozy storybook day: cartoon sky, warm sun, soft blue shadows",
+  "kind": "look",
+  "genres": [
+    "cozy",
+    "farming",
+    "life-sim",
+    "casual",
+    "kids",
+    "adventure"
+  ],
+  "summary": "Bright friendly daytime: saturated blue cartoon sky with puffy white cumulus and blue bellies, warm late-morning sun (52 deg), sky-blue ambient so shadows read soft blue, almost no haze.",
+  "use_when": "Cozy, cute, farming, life-sim, village, garden, kids, casual or 'happy' games; anything that should feel sunny and welcoming.",
+  "how_to_use": "Instance res://starter/look-cozy-day/look.tscn ONCE as a child of the main 3D scene root (it is a Node3D at the origin; leave it unscaled). It contains WorldEnvironment (environment res://starter/look-cozy-day/env.tres) and a DirectionalLight3D named 'Sun'. The look's script (look_rig.gd, take_over=true) hands its Environment to any other WorldEnvironment and hides every DirectionalLight3D outside the look at runtime, so you do not have to delete old defaults (set take_over=false on the look root to keep your own sun). Rotate the 'Sun' node to move the light; the sky's sun/moon follows it. env.tres is tuned for the Compatibility renderer; Forward+ values live in the look root's forward_plus_overrides. Works best with saturated flat-colour albedo (greens like (0.42,0.63,0.33), warm tans) and a high 3/4 camera. Do not add more ambient or fog; bloom only hits emission above ~1.",
+  "entry": [
+    "res://starter/look-cozy-day/look.tscn"
+  ],
+  "contents": [
+    {
+      "path": "look.tscn",
+      "what": "LookCozyDay: WorldEnvironment + Sun (rotation -52, -38 deg, energy 1.15, soft shadows)"
+    },
+    {
+      "path": "env.tres",
+      "what": "Environment: colour ambient (0.64,0.74,0.95), Filmic exposure 0.78, saturation 1.18"
+    },
+    {
+      "path": "cozy_sky.gdshader",
+      "what": "stylized sky: gradient, cumulus, sun glow, storm uniform; uniforms zenith_color, horizon_color, cloud_cover, cloud_offset"
+    }
+  ],
+  "deps": [],
+  "scale": "no geometry; place at the origin",
+  "license": "summer",
+  "credit": "",
+  "provenance": "Summer-made: Grow Your Garden weather_sky 'stylized' branch and _tune_cozy lighting (living/atmosphere.gd) with the Compatibility values from docs/skills/cozy-stylized-look; base shader from Lantern Hollow (GYG NOTICE.md)",
+  "source": "grow-your-garden@6867b4f:party/world/sky.gdshader, living/atmosphere.gd (_tune_cozy), docs/skills/cozy-stylized-look/SKILL.md",
+  "verified": {
+    "compatibility": true,
+    "forward_plus": true,
+    "notes": "demo.tscn rendered in Compatibility and Forward+ on macOS (Metal, 1280x720) with no SCRIPT ERROR or shader errors; fresh_test (clean cloud project + preview stage) imports and renders in Compatibility with no errors. Not run in a real browser (WebGL2) or on the cloud's Linux/Mesa GL. Compatibility sky is more saturated than Forward+ (linear colour uniforms); Forward+ uses the original GYG values via forward_plus_overrides. v1.1 (2026-10-03, owner rule: building blocks only): demo scene and demo scripts moved out; the remaining pieces are unchanged."
+  },
+  "wow": 4,
+  "bytes": 29572
+}

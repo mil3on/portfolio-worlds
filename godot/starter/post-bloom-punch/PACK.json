@@ -1,0 +1,42 @@
+{
+  "id": "post-bloom-punch",
+  "title": "Bloom punch: glow preset tuned for the Compatibility renderer",
+  "kind": "post_fx",
+  "genres": [
+    "any",
+    "arcade",
+    "sci-fi",
+    "fantasy",
+    "neon",
+    "magic"
+  ],
+  "summary": "One node that turns on strong, clean glow on the scene's current Environment (any look or your own WorldEnvironment): emissive materials and the sun bloom, ordinary lit surfaces stay crisp. Presets punch (default), soft, dreamy.",
+  "use_when": "Neon, sci-fi, magic, pickups, lasers, lava, glowing crystals, night lights; any scene with emissive materials that should pop.",
+  "how_to_use": "Instance res://starter/post-bloom-punch/bloom_punch.tscn anywhere in the scene (plain Node, script bloom_punch.gd). Set preset ('punch', 'soft', 'dreamy') and intensity_scale (0-3). It edits the active Environment one frame after start (after look packs apply). Things glow when their emission is bright: use StandardMaterial3D emission_enabled with emission_energy_multiplier 2-6. Compatibility threshold 0.75, Forward+ 1.1.",
+  "entry": [
+    "res://starter/post-bloom-punch/bloom_punch.tscn"
+  ],
+  "contents": [
+    {
+      "path": "bloom_punch.tscn",
+      "what": "BloomPunch node"
+    },
+    {
+      "path": "bloom_punch.gd",
+      "what": "glow presets with per-renderer threshold/intensity"
+    }
+  ],
+  "deps": [],
+  "scale": "no geometry",
+  "license": "summer",
+  "credit": "",
+  "provenance": "Made by Summer for the shelf",
+  "source": "new",
+  "verified": {
+    "compatibility": true,
+    "forward_plus": true,
+    "notes": "demo.tscn rendered in Compatibility and Forward+ on macOS (Metal, 1280x720) with no SCRIPT ERROR or shader errors; fresh_test (clean cloud project + preview stage) imports and renders in Compatibility with no errors. Not run in a real browser (WebGL2) or on the cloud's Linux/Mesa GL. Compatibility glow is tighter and dimmer than Forward+ at equal settings, so intensity is multiplied by 1.8 in Compatibility and the threshold is raised by 0.35 in Forward+. demo.tscn has demo-only lighting nodes. v1.1 (2026-10-03, owner rule: building blocks only): demo scene and demo scripts moved out; the remaining pieces are unchanged."
+  },
+  "wow": 3,
+  "bytes": 19864
+}

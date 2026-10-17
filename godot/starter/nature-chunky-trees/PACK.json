@@ -1,0 +1,51 @@
+{
+ "id": "nature-chunky-trees",
+ "title": "Chunky stylised trees generator (round and pine, 5 palettes)",
+ "kind": "prop_set",
+ "genres": [
+  "cozy",
+  "farming",
+  "adventure",
+  "platformer",
+  "kids",
+  "casual"
+ ],
+ "summary": "Code-generated cartoon trees: lumpy round crowns (~5.5 m) and stacked-cone pines (~6.5 m) with a warm-top/cool-underside ramp shader, sway and optional frost. Palettes: summer, spring, autumn, blossom (pink), winter (snow caps). Trunk collider included. No textures.",
+ "use_when": "Cozy, cartoon, kids, farming, casual platformer or low-poly prompts where realistic trees would clash.",
+ "how_to_use": "Instance res://starter/nature-chunky-trees/round_tree.tscn, round_tree_b.tscn, pine_tree.tscn, round_tree_autumn.tscn, round_tree_blossom.tscn or pine_tree_snow.tscn. Or add a Node3D with script res://starter/nature-chunky-trees/chunky_tree.gd and set kind (\"round\"/\"pine\"), variant (int seed), palette (\"summer\",\"spring\",\"autumn\",\"blossom\",\"winter\",\"custom\" with top_color/bottom_color), trunk_color, collision (bool, StaticBody3D cylinder r 0.3 m, 2.4 m). Meshes are cached per variant; @tool so it shows in the editor.",
+ "entry": [
+  "res://starter/nature-chunky-trees/round_tree.tscn",
+  "res://starter/nature-chunky-trees/pine_tree.tscn",
+  "res://starter/nature-chunky-trees/round_tree_autumn.tscn",
+  "res://starter/nature-chunky-trees/round_tree_blossom.tscn",
+  "res://starter/nature-chunky-trees/pine_tree_snow.tscn",
+  "res://starter/nature-chunky-trees/chunky_tree.gd"
+ ],
+ "contents": [
+  {
+   "path": "chunky_tree.gd",
+   "what": "@tool generator Node3D (kind, variant, palette, colours, collision)"
+  },
+  {
+   "path": "chunky_foliage.gdshader",
+   "what": "canopy ramp, vertex lumps, sway, frost, gust uniforms"
+  },
+  {
+   "path": "*.tscn",
+   "what": "6 presets: round_tree, round_tree_b, pine_tree, round_tree_autumn, round_tree_blossom, pine_tree_snow"
+  }
+ ],
+ "deps": [],
+ "scale": "metres, Y-up, pivot at ground",
+ "license": "summer",
+ "credit": "",
+ "provenance": "original code from Grow Your Garden (garden/view/cozy/cozy_look.gd _mesh/_blob and cozy_foliage.gdshader), extracted into a standalone generator with palettes and collision",
+ "source": "grow-your-garden@6867b4f:garden/view/cozy/cozy_look.gd, garden/view/cozy/cozy_foliage.gdshader",
+ "verified": {
+  "compatibility": true,
+  "forward_plus": true,
+  "notes": "demo.tscn rendered in Compatibility and Forward+ with the preview stage; no script/shader errors; fresh-project copy imports and renders. Meshes are generated at runtime (@tool also builds them in the editor; editor view not separately tested). v1.1 (2026-10-03, owner rule: building blocks only): demo scene and demo scripts moved out; the remaining pieces are unchanged."
+ },
+ "wow": 4,
+ "bytes": 26391
+}

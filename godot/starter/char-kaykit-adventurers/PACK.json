@@ -1,0 +1,66 @@
+{
+  "id": "char-kaykit-adventurers",
+  "title": "KayKit adventurers: knight, barbarian, mage, rogue, hooded rogue",
+  "kind": "character",
+  "genres": [
+    "rpg",
+    "adventure",
+    "action",
+    "fantasy",
+    "casual",
+    "platformer"
+  ],
+  "summary": "Five rigged low-poly toon fantasy heroes (body about 1.7 m, 6-7k tris each) with 76 clips each (idle, walk, run, jump, melee, ranged, spellcast, block, dodge, hit, death, cheer, sit) and a helper script that animates them from a CharacterBody3D's velocity.",
+  "use_when": "The prompt needs a player hero or friendly NPCs in a fantasy, medieval, dungeon, RPG or cute action game. Default hero set: Knight for sword-and-shield, Barbarian for axe, Mage for staff/spells, Rogue for daggers, Rogue_Hooded for crossbow.",
+  "how_to_use": "Instance res://starter/char-kaykit-adventurers/knight.tscn (or barbarian/mage/rogue/rogue_hooded.tscn) as a child of your player CharacterBody3D at position (0,0,0); the body's capsule should be radius 0.35, height 1.8, centred at y=0.9. The root script character_anim.gd reads the parent velocity every physics frame, plays idle/walk/run/jump/fall and turns the model to face movement, so no animation code is needed. Call $Knight.play_action(\"attack\") from your own code (also: hit, cheer, block, dodge, cast, shoot, slash, chop, stab, heavy, spin, punch, kick, throw, interact, pickup, sit); it returns the clip length and emits action_finished(name). Call die() for the death clip, revive() to stand up. Change weapons by setting show_props (for example [\"2H_Sword\"] on the knight; options are listed in optional_props). Set auto_from_parent=false and call set_move_speed(speed, on_floor) to drive it manually.",
+  "entry": [
+    "res://starter/char-kaykit-adventurers/knight.tscn",
+    "res://starter/char-kaykit-adventurers/barbarian.tscn",
+    "res://starter/char-kaykit-adventurers/mage.tscn",
+    "res://starter/char-kaykit-adventurers/rogue.tscn",
+    "res://starter/char-kaykit-adventurers/rogue_hooded.tscn"
+  ],
+  "contents": [
+    {
+      "path": "knight.tscn",
+      "what": "Knight, 1.85 m to helmet top, 1H sword + round shield shown (also 2H_Sword, 1H_Sword_Offhand, Badge/Rectangle/Spike_Shield)"
+    },
+    {
+      "path": "barbarian.tscn",
+      "what": "Barbarian, 1.75 m, bear-hood, 2H axe shown (also 1H_Axe, 1H_Axe_Offhand, Barbarian_Round_Shield, Mug)"
+    },
+    {
+      "path": "mage.tscn",
+      "what": "Mage, 1.7 m body, hat tip about 2.1 m, purple wizard hat, 2H staff shown (also 1H_Wand, Spellbook, Spellbook_open); attack = Spellcast_Shoot"
+    },
+    {
+      "path": "rogue.tscn",
+      "what": "Rogue, 1.70 m, green cape, two knives shown (also 1H/2H_Crossbow, Throwable)"
+    },
+    {
+      "path": "rogue_hooded.tscn",
+      "what": "Hooded rogue, 1.75 m, 2H crossbow shown; attack = 2H_Ranged_Shoot"
+    },
+    {
+      "path": "character_anim.gd",
+      "what": "Plays clips by standard name (clips dictionary maps names to KayKit clip names), speed-synced locomotion, play_action/die/revive, weapon visibility"
+    },
+    {
+      "path": "models/*.glb",
+      "what": "Original KayKit GLBs (41-bone rig, 76 clips each, 1 texture each)"
+    }
+  ],
+  "deps": [],
+  "scale": "metres, Y-up, faces -Z, pivot at the feet; models scaled 0.78 inside the wrapper",
+  "license": "cc0",
+  "credit": "KayKit Adventurers Character Pack 1.0 by Kay Lousberg (www.kaylousberg.com), CC0",
+  "provenance": "third-party CC0 (KayKit Adventurers 1.0); wrapper scenes and scripts by Summer",
+  "source": "grow-your-garden:assets/kaykit (LICENSE.txt kept in models/)",
+  "verified": {
+    "compatibility": true,
+    "forward_plus": true,
+    "notes": "demo.tscn renders 5 heroes mid-action plus a wandering knight running with speed-synced Running_A; no script errors in either renderer; fresh-project copy imports and renders v1.1 (2026-10-03, owner rule: building blocks only): demo scene and demo scripts moved out; also moved out: wandering-NPC script and example; the remaining pieces are unchanged."
+  },
+  "wow": 4,
+  "bytes": 18205689
+}
