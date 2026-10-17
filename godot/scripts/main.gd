@@ -12,6 +12,10 @@ const K := preload("res://scripts/loc_kit.gd")
 const TREE_SCRIPT := preload("res://starter/nature-chunky-trees/chunky_tree.gd")
 const Fonts := preload("res://starter/ui-fonts/fonts.gd")
 const LIB := "res://assets/library/survival-nature/"
+const MACHINA := preload("res://assets/fonts/PPNeueMachina-Ultrabold.otf")
+const MANROPE := preload("res://assets/fonts/Manrope.ttf")
+const AMBIENT_STREAM := preload("res://assets/audio/birds-wind-ambient.ogg")
+const STEP_STREAM := preload("res://assets/audio/grass-step.ogg")
 
 const DEFAULT_INTERACT_RADIUS := 2.5
 
@@ -29,6 +33,8 @@ var _env: Environment
 var _clouds: Node3D
 var _time := 0.0
 var _flat_dirs: Array[Vector3] = []
+var _ambient_audio: AudioStreamPlayer
+var _step_audio: AudioStreamPlayer
 
 
 func _ready() -> void:
@@ -47,24 +53,41 @@ func _ready() -> void:
 
 	player.global_position = planet.surface_point(Vector3.UP) + Vector3.UP * 0.3
 	hud.set_discovered(0, CaseStudies.LOCATIONS.size())
+	hud.set_case_progress(CaseStudies.LOCATIONS, _discovered)
 	hud.open_requested.connect(_on_open_requested)
+	player.stepped.connect(_on_player_step)
+	_setup_audio()
 
 	await get_tree().process_frame
 	await get_tree().process_frame
 	_sun = find_child("Sun", true, false) as DirectionalLight3D
 	if _sun:
 		_sun_basis0 = _sun.global_basis
-		_sun.light_energy *= 0.75
+		_sun.light_energy *= 0.82
 	var envs := find_children("*", "WorldEnvironment", true, false)
 	if not envs.is_empty():
 		_env = (envs[0] as WorldEnvironment).environment
 	# Softer look: the bloom pass runs one frame after start, so tone it down after it.
 	await get_tree().process_frame
 	if _env:
-		_env.tonemap_exposure = minf(_env.tonemap_exposure, 0.9)
-		_env.glow_intensity *= 0.45
+		_env.tonemap_exposure = minf(_env.tonemap_exposure, 0.76)
+		_env.glow_intensity *= 0.32
 		_env.glow_bloom = minf(_env.glow_bloom, 0.03)
-		_env.glow_hdr_threshold = maxf(_env.glow_hdr_threshold, 1.2)
+		_env.glow_hdr_threshold = maxf(_env.glow_hdr_threshold, 1.35)
+
+
+func _setup_audio() -> void:
+	_ambient_audio = AudioStreamPlayer.new()
+	_ambient_audio.name = "BirdsAndWind"
+	_ambient_audio.stream = AMBIENT_STREAM
+	_ambient_audio.volume_db = -31.0
+	_ambient_audio.autoplay = true
+	add_child(_ambient_audio)
+	_step_audio = AudioStreamPlayer.new()
+	_step_audio.name = "GrassSteps"
+	_step_audio.stream = STEP_STREAM
+	_step_audio.volume_db = -16.0
+	add_child(_step_audio)
 
 
 # ---------- helpers ----------
@@ -160,7 +183,7 @@ func _make_location(d: Dictionary) -> void:
 	if k.ground_radius > 0.0:
 		planet.tints.append([up, (k.ground_radius + 0.6) / planet.radius, k.ground_color])
 	_conform(root)
-	_make_title(root, d)
+	var plaque := _make_plaque(root, d)
 
 	var radius := DEFAULT_INTERACT_RADIUS
 	if root.has_meta("radius"):
@@ -175,6 +198,7 @@ func _make_location(d: Dictionary) -> void:
 		"radius": radius,
 		"spins": k.spins,
 		"bobs": k.bobs,
+		"plaque": plaque,
 	})
 
 
@@ -218,46 +242,96 @@ func _sink(n: Node3D, y: float) -> float:
 	return minf(r * r / (2.0 * planet.radius) + 0.02, 0.8)
 
 
-## Large floating title over the location: place name, case name and a one-line summary.
-func _make_title(root: Node3D, d: Dictionary) -> void:
+## A two-state 3D sign: compact and locked until the case has been visited, then a
+## portfolio-like white card unfolds with the case context. The card itself is a
+## SubViewport texture, so it remains crisp and always turns to the camera.
+func _make_plaque(root: Node3D, d: Dictionary) -> Dictionary:
 	var desc := String(d["description"])
-	var place := desc
-	var summary := ""
 	var cut := desc.find(" - ")
-	if cut >= 0:
-		place = desc.substr(0, cut)
-		summary = desc.substr(cut + 3)
-		summary = summary.substr(0, 1).to_upper() + summary.substr(1)
-	var accent: Color = d["accentColor"]
+	var place := desc.substr(0, cut) if cut >= 0 else desc
+	var summary := desc.substr(cut + 3) if cut >= 0 else ""
 	var holder := Node3D.new()
-	holder.name = "Title"
+	holder.name = "CasePlaque"
+	holder.position = Vector3(0.0, 11.3, 0.0)
 	root.add_child(holder)
-	holder.position = Vector3(0.0, 13.0, 0.0)
-	# [text, font size, colour, y, wrap width px, vertical alignment]
-	# Title is centred on y = 0 (about 1.5 m tall); the place line sits above it and the
-	# summary hangs below it, each with a clear gap so the rows never touch.
-	var rows := [
-		[place.to_upper(), 60, accent.lightened(0.35), 1.25, 0, VERTICAL_ALIGNMENT_BOTTOM],
-		[String(d["title"]), 130, Color.WHITE, 0.0, 0, VERTICAL_ALIGNMENT_CENTER],
-		[summary, 50, Color(1, 1, 1, 0.95), -1.2, 1000, VERTICAL_ALIGNMENT_TOP],
-	]
-	for r in rows:
-		var l := Label3D.new()
-		l.text = r[0]
-		l.font = Fonts.sans(800)
-		l.font_size = r[1]
-		l.pixel_size = 0.011
-		l.modulate = r[2]
-		l.outline_size = 22
-		l.outline_modulate = Color(0.06, 0.08, 0.14, 0.9)
-		l.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-		l.position = Vector3(0.0, r[3], 0.0)
-		l.vertical_alignment = r[5]
-		l.line_spacing = 6.0
-		if int(r[4]) > 0:
-			l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-			l.width = float(r[4])
-		holder.add_child(l)
+
+	var viewport := SubViewport.new()
+	viewport.size = Vector2i(760, 410)
+	viewport.transparent_bg = true
+	viewport.render_target_update_mode = SubViewport.UPDATE_ALWAYS
+	holder.add_child(viewport)
+	var sprite := Sprite3D.new()
+	sprite.texture = viewport.get_texture()
+	sprite.pixel_size = 0.0105
+	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sprite.no_depth_test = true
+	holder.add_child(sprite)
+
+	var closed := PanelContainer.new()
+	closed.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	closed.offset_left = 55
+	closed.offset_right = -55
+	closed.offset_top = 145
+	closed.offset_bottom = -145
+	closed.add_theme_stylebox_override("panel", _plaque_style(Color(1, 1, 1, 0.96), 90, 24))
+	viewport.add_child(closed)
+	var closed_text := Label.new()
+	closed_text.text = "🔒  " + place
+	closed_text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	closed_text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	closed_text.add_theme_font_override("font", MACHINA)
+	closed_text.add_theme_font_size_override("font_size", 36)
+	closed_text.add_theme_color_override("font_color", Color("161719"))
+	closed.add_child(closed_text)
+
+	var opened := PanelContainer.new()
+	opened.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	opened.add_theme_stylebox_override("panel", _plaque_style(Color(1, 1, 1, 0.97), 42, 42))
+	opened.visible = false
+	viewport.add_child(opened)
+	var content := VBoxContainer.new()
+	content.add_theme_constant_override("separation", 10)
+	opened.add_child(content)
+	var tag := Label.new()
+	tag.text = String(d["title"]).to_upper()
+	tag.add_theme_font_override("font", MANROPE)
+	tag.add_theme_font_size_override("font_size", 18)
+	tag.add_theme_color_override("font_color", d["accentColor"])
+	content.add_child(tag)
+	var heading := Label.new()
+	heading.text = place
+	heading.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	heading.add_theme_font_override("font", MACHINA)
+	heading.add_theme_font_size_override("font_size", 47)
+	heading.add_theme_color_override("font_color", Color("0c0d0f"))
+	content.add_child(heading)
+	var client := Label.new()
+	client.text = "Кейс " + String(d["title"])
+	client.add_theme_font_override("font", MANROPE)
+	client.add_theme_font_size_override("font_size", 26)
+	client.add_theme_color_override("font_color", Color("272a2f"))
+	content.add_child(client)
+	var body := Label.new()
+	body.text = summary
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	body.add_theme_font_override("font", MANROPE)
+	body.add_theme_font_size_override("font_size", 23)
+	body.add_theme_color_override("font_color", Color("202227"))
+	content.add_child(body)
+	return {"closed": closed, "opened": opened}
+
+
+func _plaque_style(color: Color, radius: int, pad: int) -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	s.bg_color = color
+	s.set_corner_radius_all(radius)
+	s.content_margin_left = pad
+	s.content_margin_right = pad
+	s.content_margin_top = pad
+	s.content_margin_bottom = pad
+	s.shadow_color = Color(0.05, 0.06, 0.08, 0.22)
+	s.shadow_size = 18
+	return s
 
 
 # ---------- world dressing ----------
@@ -305,6 +379,55 @@ func _scatter() -> void:
 		if not _claim(taken, dir, 1.0):
 			continue
 		_place(_lib(rocks[rng.randi() % rocks.size()]), dir, rng.randf() * TAU, rng.randf_range(0.8, 2.2), 0.15)
+	# Small reusable grass clumps and flowers fill the quiet parts of the planet. They are
+	# never sampled from the lowered sea basin and each clump reserves its own footprint.
+	for i in 110:
+		var dir := _rand_dir(rng)
+		if _too_close(dir, 0.30) or planet.height_at(dir) <= planet.water_level() + 0.16:
+			continue
+		if not _claim(taken, dir, 0.48):
+			continue
+		_place(_grass_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.75, 1.18), 0.0)
+	for i in 52:
+		var dir := _rand_dir(rng)
+		if _too_close(dir, 0.31) or planet.height_at(dir) <= planet.water_level() + 0.16:
+			continue
+		if not _claim(taken, dir, 0.72):
+			continue
+		_place(_flower_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.72, 1.12), 0.0)
+
+
+func _grass_clump(rng: RandomNumberGenerator) -> Node3D:
+	var root := Node3D.new()
+	for i in 4:
+		var blade := MeshInstance3D.new()
+		var mesh := BoxMesh.new()
+		mesh.size = Vector3(0.06, rng.randf_range(0.24, 0.42), 0.025)
+		mesh.material = _mat(Color(0.27, rng.randf_range(0.50, 0.68), 0.27))
+		blade.mesh = mesh
+		blade.position = Vector3(rng.randf_range(-0.22, 0.22), mesh.size.y * 0.5, rng.randf_range(-0.22, 0.22))
+		blade.rotation.y = rng.randf() * TAU
+		blade.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(blade)
+	return root
+
+
+func _flower_clump(rng: RandomNumberGenerator) -> Node3D:
+	var root := _grass_clump(rng)
+	var colors := [Color("f4d65d"), Color("f18ba2"), Color("8bbcff"), Color("f4f1dc")]
+	for i in 3:
+		var bloom := MeshInstance3D.new()
+		var mesh := SphereMesh.new()
+		mesh.radius = 0.075
+		mesh.height = 0.15
+		mesh.radial_segments = 8
+		mesh.rings = 4
+		mesh.material = _mat(colors[rng.randi_range(0, colors.size() - 1)], 0.15)
+		bloom.mesh = mesh
+		bloom.position = Vector3(rng.randf_range(-0.2, 0.2), rng.randf_range(0.20, 0.34), rng.randf_range(-0.2, 0.2))
+		bloom.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(bloom)
+	return root
 
 
 func _make_clouds() -> void:
@@ -403,4 +526,47 @@ func _open(i: int) -> void:
 	OS.shell_open(url)
 	_discovered[data["id"]] = true
 	hud.set_discovered(_discovered.size(), CaseStudies.LOCATIONS.size())
+	hud.set_case_progress(CaseStudies.LOCATIONS, _discovered)
+	var plaque: Dictionary = loc["plaque"]
+	if plaque:
+		plaque["closed"].visible = false
+		plaque["opened"].visible = true
 	hud.flash("Открываю кейс " + String(data["title"]) + "...")
+
+
+func _on_player_step(world_pos: Vector3, up: Vector3, running: bool) -> void:
+	if _step_audio:
+		_step_audio.pitch_scale = randf_range(0.92, 1.08)
+		_step_audio.play()
+	_spawn_step_fx(world_pos, up, running)
+
+
+func _spawn_step_fx(world_pos: Vector3, up: Vector3, running: bool) -> void:
+	var root := Node3D.new()
+	decor.add_child(root)
+	root.global_transform = Transform3D(_basis_from_up(up), world_pos + up * 0.04)
+	var material := StandardMaterial3D.new()
+	material.albedo_color = Color(0.48, 0.36, 0.21, 0.46)
+	material.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	var count := 6 if running else 3
+	for i in count:
+		var puff := MeshInstance3D.new()
+		var mesh := SphereMesh.new()
+		mesh.radius = 0.055 if not running else 0.08
+		mesh.height = mesh.radius * 2.0
+		mesh.radial_segments = 6
+		mesh.rings = 3
+		mesh.material = material
+		puff.mesh = mesh
+		puff.position = Vector3(randf_range(-0.18, 0.18), 0.04, randf_range(-0.18, 0.18))
+		puff.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		root.add_child(puff)
+		var end := puff.position + Vector3(randf_range(-0.36, 0.36), randf_range(0.14, 0.30), randf_range(-0.16, 0.30)) * (1.45 if running else 1.0)
+		var tw := create_tween()
+		tw.set_parallel(true)
+		tw.tween_property(puff, "position", end, 0.46)
+		tw.tween_property(puff, "scale", Vector3.ONE * (1.8 if running else 1.4), 0.46)
+	var cleanup := create_tween()
+	cleanup.tween_interval(0.5)
+	cleanup.tween_callback(root.queue_free)

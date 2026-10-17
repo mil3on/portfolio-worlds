@@ -1,6 +1,8 @@
 extends CharacterBody3D
 ## Third-person walker on a spherical planet. Body Y always points away from the planet centre.
 
+signal stepped(world_pos: Vector3, up: Vector3, running: bool)
+
 @export var planet_center := Vector3.ZERO
 @export var walk_speed := 2.6
 @export var run_speed := 4.8
@@ -19,6 +21,7 @@ var input_enabled := true
 
 var _yaw := 0.0
 var _pitch := -0.22
+var _step_left := 0.0
 @onready var cam_pitch: Node3D = $CameraYaw/CameraPitch
 
 
@@ -91,6 +94,16 @@ func _physics_process(delta: float) -> void:
 	velocity = tangent + up * vert
 	move_and_slide()
 
+	# A compact, speed-driven step event powers both the grass sound and the small
+	# ground puffs. Keeping it here means the effects stay in sync with movement.
+	_step_left -= delta
+	if is_on_floor() and tangent.length() > 0.35 and _step_left <= 0.0:
+		var running := tangent.length() >= run_threshold()
+		_step_left = 0.29 if running else 0.47
+		stepped.emit(global_position - up * 0.78, up, running)
+	elif tangent.length() <= 0.35:
+		_step_left = minf(_step_left, 0.08)
+
 	# Face movement in the body's local frame (KayKit models face -Z).
 	if dir.length() > 0.1:
 		var local_dir := global_basis.orthonormalized().inverse() * dir
@@ -98,3 +111,7 @@ func _physics_process(delta: float) -> void:
 		model.rotation.y = lerp_angle(model.rotation.y, target, 1.0 - exp(-12.0 * delta))
 	if model.has_method("set_move_speed"):
 		model.set_move_speed(tangent.length(), is_on_floor())
+
+
+func run_threshold() -> float:
+	return (walk_speed + run_speed) * 0.5

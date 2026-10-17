@@ -5,12 +5,14 @@ extends CanvasLayer
 
 signal open_requested
 
-const Fonts := preload("res://starter/ui-fonts/fonts.gd")
+const MACHINA := preload("res://assets/fonts/PPNeueMachina-Ultrabold.otf")
+const MANROPE := preload("res://assets/fonts/Manrope.ttf")
 
 ## Show the touch button even on desktop, for testing the mobile layout.
 @export var force_mobile_button := false
 
 var _counter: Label
+var _progress: VBoxContainer
 var _prompt: PanelContainer
 var _prompt_title: Label
 var _prompt_label: Label
@@ -37,6 +39,10 @@ func _style(bg: Color, radius := 18, pad := 18) -> StyleBoxFlat:
 	s.content_margin_right = pad
 	s.content_margin_top = pad * 0.6
 	s.content_margin_bottom = pad * 0.6
+	s.border_color = Color(1, 1, 1, 0.52)
+	s.set_border_width_all(1)
+	s.shadow_color = Color(0.03, 0.05, 0.08, 0.18)
+	s.shadow_size = 16
 	return s
 
 
@@ -51,18 +57,20 @@ func _label(text: String, size: int, color: Color, font: Font) -> Label:
 
 func _build_corner() -> void:
 	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", _style(Color(1, 1, 1, 0.82), 16, 16))
+	box.add_theme_stylebox_override("panel", _style(Color(1, 1, 1, 0.76), 28, 19))
 	box.position = Vector2(24, 24)
 	add_child(box)
 	var v := VBoxContainer.new()
 	box.add_child(v)
-	v.add_child(_label("ПЛАНЕТА ПОРТФОЛИО", 14, Color(0.4, 0.45, 0.55), Fonts.sans(800)))
-	_counter = _label("Открыто 0 / 7", 20, Color(0.12, 0.14, 0.2), Fonts.sans(700))
+	v.add_theme_constant_override("separation", 7)
+	v.add_child(_label("ИЗУЧИТЕ ВСЕ КЕЙСЫ", 18, Color("101113"), MACHINA))
+	_counter = _label("0 / 7 открыто", 14, Color("70747d"), MANROPE)
 	v.add_child(_counter)
+	_progress = VBoxContainer.new()
+	_progress.add_theme_constant_override("separation", 4)
+	v.add_child(_progress)
 
-	var hint := _label("WASD - ходьба  |  Shift - бег  |  Пробел - прыжок  |  Мышь - камера  |  E - открыть кейс", 15, Color(1, 1, 1, 0.9), Fonts.sans(600))
-	hint.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.45))
-	hint.add_theme_constant_override("outline_size", 6)
+	var hint := _label("WASD — ходьба   Shift — бег   Пробел — прыжок   E — открыть", 14, Color(0.05, 0.06, 0.08, 0.86), MANROPE)
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
 	hint.offset_top = -44
@@ -73,7 +81,7 @@ func _build_corner() -> void:
 
 func _build_prompt() -> void:
 	_prompt = PanelContainer.new()
-	_prompt.add_theme_stylebox_override("panel", _style(Color(0.1, 0.12, 0.18, 0.85), 30, 26))
+	_prompt.add_theme_stylebox_override("panel", _style(Color(0.07, 0.08, 0.10, 0.78), 28, 24))
 	_prompt.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
 	_prompt.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_prompt.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -84,23 +92,23 @@ func _build_prompt() -> void:
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_theme_constant_override("separation", 2)
 	_prompt.add_child(v)
-	_prompt_title = _label("", 16, Color(1, 1, 1, 0.75), Fonts.sans(700))
+	_prompt_title = _label("", 14, Color(1, 1, 1, 0.72), MANROPE)
 	_prompt_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(_prompt_title)
-	_prompt_label = _label("", 24, Color.WHITE, Fonts.sans(800))
+	_prompt_label = _label("", 23, Color.WHITE, MACHINA)
 	_prompt_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(_prompt_label)
 
 
 func _build_toast() -> void:
 	_toast = PanelContainer.new()
-	_toast.add_theme_stylebox_override("panel", _style(Color(0.1, 0.12, 0.18, 0.88), 22, 22))
+	_toast.add_theme_stylebox_override("panel", _style(Color(0.07, 0.08, 0.1, 0.88), 22, 22))
 	_toast.set_anchors_preset(Control.PRESET_CENTER_TOP)
 	_toast.grow_horizontal = Control.GROW_DIRECTION_BOTH
 	_toast.offset_top = 40
 	_toast.visible = false
 	add_child(_toast)
-	_toast_label = _label("", 18, Color.WHITE, Fonts.sans(700))
+	_toast_label = _label("", 18, Color.WHITE, MANROPE)
 	_toast.add_child(_toast_label)
 
 
@@ -109,7 +117,7 @@ func _build_button() -> void:
 	_button.custom_minimum_size = Vector2(112, 112)
 	_button.focus_mode = Control.FOCUS_NONE
 	_button.text = "ОТКРЫТЬ"
-	_button.add_theme_font_override("font", Fonts.sans(800))
+	_button.add_theme_font_override("font", MACHINA)
 	_button.add_theme_font_size_override("font_size", 20)
 	_button.add_theme_color_override("font_color", Color(0.1, 0.12, 0.18))
 	var normal := _style(Color(1, 1, 1, 0.92), 56, 12)
@@ -135,8 +143,8 @@ func _build_title_card() -> void:
 	card.alignment = BoxContainer.ALIGNMENT_CENTER
 	card.offset_top = -180
 	add_child(card)
-	var t := _label("Добро пожаловать в мой мир", 60, Color.WHITE, Fonts.sans(800))
-	var s := _label("Семь мест - семь кейсов. Подойди к любому и нажми E.", 20, Color.WHITE, Fonts.sans(600))
+	var t := _label("Мир портфолио", 60, Color.WHITE, MACHINA)
+	var s := _label("Семь локаций — семь историй. Подойди к любой и нажми E.", 20, Color.WHITE, MANROPE)
 	for l: Label in [t, s]:
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		l.add_theme_color_override("font_outline_color", Color(0.1, 0.15, 0.3, 0.55))
@@ -149,7 +157,22 @@ func _build_title_card() -> void:
 
 
 func set_discovered(n: int, total: int) -> void:
-	_counter.text = "Открыто %d / %d" % [n, total]
+	_counter.text = "%d / %d открыто" % [n, total]
+
+
+func set_case_progress(cases: Array, discovered: Dictionary) -> void:
+	if _progress == null:
+		return
+	for child in _progress.get_children():
+		child.queue_free()
+	for data: Dictionary in cases:
+		var done := discovered.has(data["id"])
+		var row := Label.new()
+		row.text = ("✓  " if done else "○  ") + String(data["title"])
+		row.add_theme_font_override("font", MANROPE)
+		row.add_theme_font_size_override("font_size", 15)
+		row.add_theme_color_override("font_color", Color("3d835f") if done else Color("8b8e95"))
+		_progress.add_child(row)
 
 
 func show_prompt(title: String, label: String) -> void:
