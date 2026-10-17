@@ -6,8 +6,12 @@
 [node name="Leon" type="Node3D" unique_id=324926967]
 script = ExtResource("1_anim")
 clip_sources = {
-"walk": "res://characters/leon/walk.glb",
-"run": "res://characters/leon/run.glb"
+	"idle": "res://characters/leon/animations/Happy Idle.fbx",
+	"walk": "res://characters/leon/animations/Swagger Walk.fbx",
+	"run": "res://characters/leon/animations/Running.fbx",
+	"jump": "res://characters/leon/animations/Jump in place.fbx",
+	"run_jump": "res://characters/leon/animations/Running Jump.fbx",
+	"interact": "res://characters/leon/animations/use.fbx"
 }
 
 [node name="Rig" parent="." unique_id=1468987119 instance=ExtResource("2_rig")]

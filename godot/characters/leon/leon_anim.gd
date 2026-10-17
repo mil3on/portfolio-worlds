@@ -19,10 +19,12 @@ extends Node3D
 	"walk": "Walk",
 	"run": "Run",
 	"jump": "Jump",
+	"run_jump": "RunJump",
+	"interact": "Use",
 	"fall": "Jump",
 }
-## Action -> GLB scene that carries that clip on this same rig. Used only for actions the
-## rig file itself does not provide. A source holding a single clip is named after the action.
+## Action -> source scene that carries that clip. A source holding a single clip is named after
+## the action. Mixamo tracks are retargeted to Leon's equivalent bones at runtime.
 @export var clip_sources: Dictionary = {}
 ## Ground speed in m/s that matches the walk clip at playback rate 1.
 @export var walk_clip_speed := 1.6
@@ -44,6 +46,35 @@ var _loco := ""
 var _resolved: Dictionary = {}
 var _rig_scale0 := Vector3.ZERO
 var _t := 0.0
+var _interaction_left := 0.0
+
+## Leon has the same humanoid hierarchy as the supplied Mixamo clips, but its bone names do
+## not carry the `mixamorig_` prefix and its spine is numbered in the opposite order.
+const MIXAMO_TO_LEON := {
+	"mixamorig_Hips": "Hips",
+	"mixamorig_Spine": "Spine",
+	"mixamorig_Spine1": "Spine01",
+	"mixamorig_Spine2": "Spine02",
+	"mixamorig_Neck": "neck",
+	"mixamorig_Head": "Head",
+	"mixamorig_HeadTop_End": "head_end",
+	"mixamorig_LeftShoulder": "LeftShoulder",
+	"mixamorig_LeftArm": "LeftArm",
+	"mixamorig_LeftForeArm": "LeftForeArm",
+	"mixamorig_LeftHand": "LeftHand",
+	"mixamorig_RightShoulder": "RightShoulder",
+	"mixamorig_RightArm": "RightArm",
+	"mixamorig_RightForeArm": "RightForeArm",
+	"mixamorig_RightHand": "RightHand",
+	"mixamorig_LeftUpLeg": "LeftUpLeg",
+	"mixamorig_LeftLeg": "LeftLeg",
+	"mixamorig_LeftFoot": "LeftFoot",
+	"mixamorig_LeftToeBase": "LeftToeBase",
+	"mixamorig_RightUpLeg": "RightUpLeg",
+	"mixamorig_RightLeg": "RightLeg",
+	"mixamorig_RightFoot": "RightFoot",
+	"mixamorig_RightToeBase": "RightToeBase",
+}
 
 
 func _ready() -> void:
@@ -60,9 +91,10 @@ func _ready() -> void:
 		var clip := _clip(action)
 		if clip != "":
 			anim.get_animation(clip).loop_mode = Animation.LOOP_LINEAR
-	var one_shot := _clip("jump")
-	if one_shot != "":
-		anim.get_animation(one_shot).loop_mode = Animation.LOOP_NONE
+	for action: String in ["jump", "run_jump", "interact"]:
+		var one_shot := _clip(action)
+		if one_shot != "":
+			anim.get_animation(one_shot).loop_mode = Animation.LOOP_NONE
 	_set_loco("idle")
 	var rig := _rig_node()
 	if rig:
@@ -72,6 +104,7 @@ func _ready() -> void:
 ## Procedural layer while real idle/jump clips are missing: gentle breathing at rest
 ## and a small stretch in the air. Turns itself off once those clips exist.
 func _process(delta: float) -> void:
+	_interaction_left = maxf(0.0, _interaction_left - delta)
 	var rig := _rig_node()
 	if rig == null or _rig_scale0 == Vector3.ZERO:
 		return
@@ -98,6 +131,15 @@ func set_move_speed(speed: float, on_floor := true) -> void:
 ## Current locomotion state: "idle", "walk", "run", "jump" or "fall".
 func get_locomotion() -> String:
 	return _loco
+
+
+## Plays the supplied `use.fbx` gesture when opening a nearby case.
+func play_interaction() -> void:
+	if anim == null or not has_clip("interact"):
+		return
+	var clip := _clip("interact")
+	_interaction_left = anim.get_animation(clip).length
+	_set_loco("interact")
 
 
 func has_clip(action: String) -> bool:
@@ -157,6 +199,7 @@ func _absorb_clip_sources() -> void:
 			continue
 		var temp := packed.instantiate()
 		var src := _first_player(temp)
+		var source_skeleton := _first_skeleton(temp)
 		if src != null:
 			var found: Array = []
 			for lib_name: StringName in src.get_animation_library_list():
@@ -166,7 +209,7 @@ func _absorb_clip_sources() -> void:
 			if found.size() == 1:
 				main_lib.add_animation(
 					String(clips.get(action, action)),
-					(found[0][0] as AnimationLibrary).get_animation(found[0][1]).duplicate(true)
+					_retarget_mixamo((found[0][0] as AnimationLibrary).get_animation(found[0][1]), source_skeleton)
 				)
 			else:
 				for entry: Array in found:
@@ -174,9 +217,65 @@ func _absorb_clip_sources() -> void:
 					if not main_lib.has_animation(clip_name):
 						main_lib.add_animation(
 							clip_name,
-							(entry[0] as AnimationLibrary).get_animation(entry[1]).duplicate(true)
+							_retarget_mixamo((entry[0] as AnimationLibrary).get_animation(entry[1]), source_skeleton)
 						)
 		temp.free()
+
+
+## Rebind a Mixamo Animation's transform tracks to the Skeleton3D inside Leon's rig.
+## Mixamo stores absolute bone transforms in a centimetre-scale rest pose. Convert each key to
+## a rest-relative motion and apply it to Leon's rest pose, so the mesh keeps its standing height.
+## Finger tracks are intentionally removed because Leon's supplied character mesh has no finger bones.
+func _retarget_mixamo(source: Animation, source_skeleton: Skeleton3D) -> Animation:
+	var clip := source.duplicate(true) as Animation
+	var target_skeleton := _first_skeleton(_rig_node())
+	if source_skeleton == null or target_skeleton == null:
+		return clip
+	var height_ratio := _skeleton_height(target_skeleton) / maxf(_skeleton_height(source_skeleton), 0.0001)
+	for track_i in range(clip.get_track_count() - 1, -1, -1):
+		var source_bone := String(clip.track_get_path(track_i).get_concatenated_subnames())
+		if not source_bone.begins_with("mixamorig_"):
+			continue
+		var target_bone := String(MIXAMO_TO_LEON.get(source_bone, ""))
+		if target_bone.is_empty():
+			clip.remove_track(track_i)
+		else:
+			clip.track_set_path(track_i, NodePath("Armature/Skeleton3D:" + target_bone))
+			var source_rest := source_skeleton.get_bone_rest(source_skeleton.find_bone(source_bone))
+			var target_rest := target_skeleton.get_bone_rest(target_skeleton.find_bone(target_bone))
+			for key_i in clip.track_get_key_count(track_i):
+				var value: Variant = clip.track_get_key_value(track_i, key_i)
+				match clip.track_get_type(track_i):
+					Animation.TYPE_POSITION_3D:
+						var delta := source_rest.basis.inverse() * (value as Vector3 - source_rest.origin)
+						# Movement comes from CharacterBody3D; avoid root-motion drift from source clips.
+						if source_bone == "mixamorig_Hips":
+							delta.x = 0.0
+							delta.z = 0.0
+						clip.track_set_key_value(track_i, key_i, target_rest.origin + target_rest.basis * (delta * height_ratio))
+					Animation.TYPE_ROTATION_3D:
+						var relative_basis := source_rest.basis.inverse() * Basis(value as Quaternion)
+						clip.track_set_key_value(track_i, key_i, (target_rest.basis * relative_basis).orthonormalized().get_rotation_quaternion())
+	return clip
+
+
+func _first_skeleton(root: Node) -> Skeleton3D:
+	if root == null:
+		return null
+	if root is Skeleton3D:
+		return root as Skeleton3D
+	var found := root.find_children("*", "Skeleton3D", true, false)
+	return (found[0] as Skeleton3D) if not found.is_empty() else null
+
+
+func _skeleton_height(skeleton: Skeleton3D) -> float:
+	var lo := INF
+	var hi := -INF
+	for i in skeleton.get_bone_count():
+		var y := skeleton.get_bone_global_rest(i).origin.y
+		lo = minf(lo, y)
+		hi = maxf(hi, y)
+	return hi - lo
 
 
 func _resolve_clips() -> void:
@@ -209,9 +308,13 @@ func _match(wanted: String, action: String, names: PackedStringArray) -> String:
 func _update_locomotion() -> void:
 	if anim == null:
 		return
+	if _interaction_left > 0.0:
+		return
 	if not _on_floor:
 		if _loco != "jump" and _loco != "fall" and _loco != "air":
-			if has_clip("jump"):
+			if _speed >= run_threshold and has_clip("run_jump"):
+				_set_loco("run_jump")
+			elif has_clip("jump"):
 				_set_loco("jump")
 			elif has_clip("fall"):
 				_set_loco("fall")

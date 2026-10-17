@@ -31,6 +31,11 @@ func _ready() -> void:
 	_align()
 
 
+func play_interaction() -> void:
+	if model.has_method("play_interaction"):
+		model.play_interaction()
+
+
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		Input.mouse_mode = Input.MOUSE_MODE_VISIBLE

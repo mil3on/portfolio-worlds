@@ -389,6 +389,8 @@ func _on_open_requested() -> void:
 
 ## Opens the case study in a new browser tab. No overlay, no scene change.
 func _open(i: int) -> void:
+	if player and player.has_method("play_interaction"):
+		player.play_interaction()
 	var loc := _locations[i]
 	var data: Dictionary = loc["data"]
 	var aura: Node = loc["aura"]
