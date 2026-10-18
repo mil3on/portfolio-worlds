@@ -138,59 +138,21 @@ func _menu_header_style() -> StyleBoxFlat:
 
 
 func _build_controls() -> void:
-	var controls := HBoxContainer.new()
+	# Keep the controls as the approved portfolio artwork rather than rebuilding
+	# its carefully spaced keyboard layout out of individual UI widgets.
+	var controls := TextureRect.new()
+	controls.texture = load("res://assets/ui/controls-reference.png")
+	controls.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	controls.stretch_mode = TextureRect.STRETCH_KEEP
 	controls.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	controls.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	controls.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	controls.offset_left = -388
+	controls.offset_top = -307
 	controls.offset_right = -24
 	controls.offset_bottom = -24
-	controls.add_theme_constant_override("separation", 10)
 	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	controls.add_child(_control_chip(["W", "A", "S", "D"], "двигаться", 179))
-	controls.add_child(_control_chip(["Shift"], "бежать", 161))
-	controls.add_child(_control_chip(["E"], "использовать", 161))
 	add_child(controls)
-
-
-func _control_chip(keys: Array[String], caption: String, width: float) -> PanelContainer:
-	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(width, 41)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color("050505")
-	style.set_corner_radius_all(16)
-	style.content_margin_left = 10
-	style.content_margin_right = 14
-	chip.add_theme_stylebox_override("panel", style)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 8)
-	chip.add_child(row)
-	var key_row := HBoxContainer.new()
-	key_row.add_theme_constant_override("separation", 3)
-	row.add_child(key_row)
-	for key in keys:
-		key_row.add_child(_keycap(key))
-	var text := _label(caption, 14, Color.WHITE, MANROPE)
-	text.add_theme_font_size_override("font_size", 14)
-	text.add_theme_color_override("font_color", Color.WHITE)
-	row.add_child(text)
-	return chip
-
-
-func _keycap(key: String) -> PanelContainer:
-	var cap := PanelContainer.new()
-	cap.custom_minimum_size = Vector2(42 if key == "Shift" else 20, 20)
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color.WHITE
-	style.set_corner_radius_all(2)
-	style.content_margin_left = 3
-	style.content_margin_right = 3
-	cap.add_theme_stylebox_override("panel", style)
-	var text := _label(key, 11 if key == "Shift" else 12, Color.BLACK, MANROPE)
-	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	cap.add_child(text)
-	return cap
 
 
 func _build_prompt() -> void:
