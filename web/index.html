@@ -111,7 +111,8 @@ body {
 
 		<script src="index.js"></script>
 		<script>
-const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71289952,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
+const GODOT_PACK_VERSION = '28a110d';
+const GODOT_CONFIG = {"args":[],"canvasResizePolicy":2,"emscriptenPoolSize":8,"ensureCrossOriginIsolationHeaders":true,"executable":"index","experimentalVK":false,"fileSizes":{"index.pck":71289952,"index.pck?v=28a110d":71289952,"index.wasm":39514754},"focusCanvas":true,"gdextensionLibs":[],"godotPoolSize":4};
 const GODOT_THREADS_ENABLED = false;
 const engine = new Engine(GODOT_CONFIG);
 
@@ -199,17 +200,22 @@ const engine = new Engine(GODOT_CONFIG);
 		}
 	} else {
 		setStatusMode('progress');
-		engine.startGame({
-			'onProgress': function (current, total) {
-				if (current > 0 && total > 0) {
-					statusProgress.value = current;
-					statusProgress.max = total;
-				} else {
-					statusProgress.removeAttribute('value');
-					statusProgress.removeAttribute('max');
-				}
-			},
-		}).then(() => {
+		engine.config.onProgress = function (current, total) {
+			if (current > 0 && total > 0) {
+				statusProgress.value = current;
+				statusProgress.max = total;
+			} else {
+				statusProgress.removeAttribute('value');
+				statusProgress.removeAttribute('max');
+			}
+		};
+		// GitHub Pages caches static files for several minutes. Fetch the data pack through
+		// a revisioned URL, but register it in Godot's virtual file system as index.pck.
+		// This prevents a newly deployed page from accidentally pairing with an old cached pack.
+		engine.init('index').then(() => engine.preloadFile(
+			'index.pck?v=' + GODOT_PACK_VERSION,
+			'index.pck',
+		)).then(() => engine.start({ args: ['--main-pack', 'index.pck'] })).then(() => {
 			setStatusMode('hidden');
 		}, displayFailureNotice);
 	}
