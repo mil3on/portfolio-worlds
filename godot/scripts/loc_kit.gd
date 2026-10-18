@@ -64,16 +64,41 @@ func begin(r: Node3D, accent_color: Color) -> void:
 	accent = accent_color
 
 
-## The supplied Sketchfab flower composition is instanced at a deliberately small scale.
-## It stays one shared packed scene rather than duplicating its meshes and textures.
-func flowers(pos: Vector3, scale := 0.08, yaw := 0.0) -> Node3D:
-	var plant := FLOWERS.instantiate() as Node3D
-	plant.name = "FlowersPack"
+## The supplied download is a flower *composition*, so extract one mesh from it rather
+## than placing the whole bouquet.  This keeps a single small flower at each point.
+func flowers(pos: Vector3, scale := 0.08, yaw := 0.0, variation := 0) -> Node3D:
+	var source := FLOWERS.instantiate() as Node3D
+	root.add_child(source)
+	source.visible = false
+	var meshes := _find_meshes(source)
+	var plant := Node3D.new()
+	plant.name = "SingleFlower"
+	if not meshes.is_empty():
+		var picked := meshes[posmod(variation, meshes.size())]
+		var single := picked.duplicate() as MeshInstance3D
+		var local := source.global_transform.affine_inverse() * picked.global_transform
+		# The original positions are for the bouquet layout; each extracted flower starts
+		# at its own scatter point while retaining its source rotation and scale.
+		local.origin = Vector3.ZERO
+		single.transform = local
+		single.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		plant.add_child(single)
+	root.remove_child(source)
+	source.queue_free()
 	plant.position = pos
 	plant.rotation.y = yaw
 	plant.scale = Vector3.ONE * scale
 	root.add_child(plant)
 	return plant
+
+
+func _find_meshes(node: Node) -> Array[MeshInstance3D]:
+	var result: Array[MeshInstance3D] = []
+	for child in node.get_children():
+		if child is MeshInstance3D:
+			result.append(child as MeshInstance3D)
+		result.append_array(_find_meshes(child))
+	return result
 
 
 func result() -> Dictionary:

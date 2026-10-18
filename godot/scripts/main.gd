@@ -18,7 +18,6 @@ const AMBIENT_STREAM := preload("res://assets/audio/background-sounds.mp3")
 const STEP_STREAM := preload("res://assets/audio/footstep-on-grass.mp3")
 const USE_STREAM := preload("res://assets/audio/use-case.mp3")
 const LOCK_ICON := preload("res://assets/ui/lock.svg")
-const FLOWERS_SCENE := preload("res://assets/library/user/flowers_pack_1.glb")
 
 const DEFAULT_INTERACT_RADIUS := 2.5
 
@@ -34,6 +33,11 @@ var _sun: DirectionalLight3D
 var _sun_basis0 := Basis.IDENTITY
 var _env: Environment
 var _clouds: Node3D
+var _moon: Node3D
+var _moon_dir := Vector3(0.0, -1.0, 0.0)
+var _moon_orbit_axis := Vector3.RIGHT
+var _sky_material: ShaderMaterial
+var _night_mix := -1.0
 var _time := 0.0
 var _flat_dirs: Array[Vector3] = []
 var _ambient_audio: AudioStreamPlayer
@@ -72,6 +76,8 @@ func _ready() -> void:
 	var envs := find_children("*", "WorldEnvironment", true, false)
 	if not envs.is_empty():
 		_env = (envs[0] as WorldEnvironment).environment
+		if _env and _env.sky and _env.sky.sky_material is ShaderMaterial:
+			_sky_material = _env.sky.sky_material as ShaderMaterial
 	# Softer look: the bloom pass runs one frame after start, so tone it down after it.
 	await get_tree().process_frame
 	if _env:
@@ -402,8 +408,8 @@ func _scatter() -> void:
 		if not _claim(taken, dir, 1.0):
 			continue
 		_place(_lib(rocks[rng.randi() % rocks.size()]), dir, rng.randf() * TAU, rng.randf_range(0.8, 2.2), 0.15)
-	# Small reusable grass clumps and flowers fill the quiet parts of the planet. They are
-	# never sampled from the lowered sea basin and each clump reserves its own footprint.
+	# Small reusable grass clumps fill quiet parts of the planet. They are never sampled
+	# from the lowered sea basin and each clump reserves its own footprint.
 	for i in 110:
 		var dir := _rand_dir(rng)
 		if _too_close(dir, 0.30) or planet.height_at(dir) <= planet.water_level() + 0.16:
@@ -411,13 +417,6 @@ func _scatter() -> void:
 		if not _claim(taken, dir, 0.48):
 			continue
 		_place(_grass_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.75, 1.18), 0.0)
-	for i in 18:
-		var dir := _rand_dir(rng)
-		if _too_close(dir, 0.31) or planet.height_at(dir) <= planet.water_level() + 0.16:
-			continue
-		if not _claim(taken, dir, 0.72):
-			continue
-		_place(_flower_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.06, 0.10), 0.0)
 
 
 func _grass_clump(rng: RandomNumberGenerator) -> Node3D:
@@ -435,45 +434,31 @@ func _grass_clump(rng: RandomNumberGenerator) -> Node3D:
 	return root
 
 
-func _flower_clump(rng: RandomNumberGenerator) -> Node3D:
-	var root := FLOWERS_SCENE.instantiate() as Node3D
-	root.name = "FlowersPack"
-	# The model is reused as an instanced scene; only its transforms vary across the planet.
-	for n in _all_meshes(root):
-		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	return root
-
-
-func _all_meshes(root: Node) -> Array[MeshInstance3D]:
-	var meshes: Array[MeshInstance3D] = []
-	for child in root.get_children():
-		if child is MeshInstance3D:
-			meshes.append(child as MeshInstance3D)
-		meshes.append_array(_all_meshes(child))
-	return meshes
-
-
 func _make_night_side() -> void:
 	# The moon and its cool directional fill stay fixed, opposite the sun. The warm
 	# lanterns make the night hemisphere navigable without flattening the day-side light.
 	var sun_dir := Vector3(0.45, -0.72, 0.52).normalized()
 	if _sun:
 		sun_dir = -_sun.global_transform.basis.z.normalized()
-	var moon_dir := -sun_dir
-	var moon := Node3D.new()
-	moon.name = "Moon"
-	add_child(moon)
-	moon.global_position = planet.global_position + moon_dir * 66.0
+	_moon_dir = -sun_dir
+	_moon_orbit_axis = _moon_dir.cross(Vector3.UP)
+	if _moon_orbit_axis.length_squared() < 0.01:
+		_moon_orbit_axis = Vector3.RIGHT
+	_moon_orbit_axis = _moon_orbit_axis.normalized()
+	_moon = Node3D.new()
+	_moon.name = "Moon"
+	add_child(_moon)
+	_moon.global_position = planet.global_position + _moon_dir * 52.0
 	var moon_mesh := MeshInstance3D.new()
 	var moon_sphere := SphereMesh.new()
-	moon_sphere.radius = 4.2
-	moon_sphere.height = 8.4
+	moon_sphere.radius = 5.4
+	moon_sphere.height = 10.8
 	moon_sphere.radial_segments = 24
 	moon_sphere.rings = 12
 	moon_mesh.mesh = moon_sphere
-	moon_mesh.material_override = _mat(Color("dce8ff"), 0.24)
+	moon_mesh.material_override = _mat(Color("e7efff"), 1.35)
 	moon_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	moon.add_child(moon_mesh)
+	_moon.add_child(moon_mesh)
 	for p in [Vector3(-1.4, 0.8, -3.5), Vector3(1.8, -1.0, -3.6), Vector3(0.2, 1.9, -3.7)]:
 		var crater := MeshInstance3D.new()
 		var crater_mesh := SphereMesh.new()
@@ -484,13 +469,13 @@ func _make_night_side() -> void:
 		crater.material_override = _mat(Color("aebbd1"))
 		crater.position = p
 		crater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		moon.add_child(crater)
+		_moon.add_child(crater)
 	var moonlight := DirectionalLight3D.new()
 	moonlight.name = "Moonlight"
 	moonlight.light_color = Color("9bb8ff")
 	moonlight.light_energy = 0.23
 	moonlight.shadow_enabled = false
-	moonlight.look_at_from_position(Vector3.ZERO, -moon_dir, Vector3.UP)
+	moonlight.look_at_from_position(Vector3.ZERO, -_moon_dir, Vector3.UP)
 	add_child(moonlight)
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 88
@@ -499,7 +484,7 @@ func _make_night_side() -> void:
 	while placed < 14 and tries < 240:
 		tries += 1
 		var dir := _rand_dir(rng)
-		if dir.dot(moon_dir) < 0.28 or _too_close(dir, 0.22):
+		if dir.dot(_moon_dir) < 0.28 or _too_close(dir, 0.22):
 			continue
 		if planet.height_at(dir) <= planet.water_level() + 0.18:
 			continue
@@ -606,8 +591,38 @@ func _process(delta: float) -> void:
 
 	# The sun is fixed in world space: travelling around the planet naturally leads
 	# from its warm day side to the dark night side.
+	_update_night_sky()
+	if _moon:
+		# The moon slowly drifts above the centre of the night hemisphere.  Its distance
+		# and size make it visible from the dark locations instead of a tiny backdrop dot.
+		var drift := sin(_time * 0.035) * 0.16
+		var current_dir := _moon_dir.rotated(_moon_orbit_axis, drift).normalized()
+		_moon.global_position = planet.global_position + current_dir * 52.0
 	if _clouds:
 		_clouds.rotate(Vector3(0.2, 1.0, 0.1).normalized(), delta * 0.015)
+
+
+func _update_night_sky() -> void:
+	if not _env or not player:
+		return
+	var player_dir := (player.global_position - planet.global_position).normalized()
+	# A gradual band around the terminator avoids an abrupt daytime-to-nighttime switch.
+	var night := smoothstep(-0.10, 0.48, player_dir.dot(_moon_dir))
+	if absf(night - _night_mix) < 0.015:
+		return
+	_night_mix = night
+	_env.ambient_light_energy = lerpf(0.20, 0.07, night)
+	_env.fog_light_color = Color("7d8da5").lerp(Color("11192f"), night)
+	_env.fog_light_energy = lerpf(0.32, 0.12, night)
+	if not _sky_material:
+		return
+	_sky_material.set_shader_parameter("zenith_color", Vector3(0.77, 0.86, 0.96).lerp(Vector3(0.006, 0.012, 0.050), night))
+	_sky_material.set_shader_parameter("horizon_color", Vector3(0.96, 0.98, 1.0).lerp(Vector3(0.018, 0.030, 0.085), night))
+	_sky_material.set_shader_parameter("cloud_shade", Vector3(0.83, 0.88, 0.94).lerp(Vector3(0.045, 0.065, 0.13), night))
+	_sky_material.set_shader_parameter("ground_color", Vector3(0.96, 0.97, 0.96).lerp(Vector3(0.01, 0.015, 0.035), night))
+	_sky_material.set_shader_parameter("cloud_cover", lerpf(0.62, 0.05, night))
+	_sky_material.set_shader_parameter("sun_glow", lerpf(1.0, 0.0, night))
+	_sky_material.set_shader_parameter("sky_energy", lerpf(1.0, 0.42, night))
 
 
 func _unhandled_input(event: InputEvent) -> void:

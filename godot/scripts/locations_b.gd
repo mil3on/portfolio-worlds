@@ -182,16 +182,16 @@ static func book(k: K) -> void:
 	k.lantern(Vector3(-2.4, 0.0, 1.4), ORANGE)
 	k.lantern(Vector3(5.6, 0.0, 1.2), ORANGE)
 
-	# Reused flowers among the grass.
+	# Individual flowers only: the library stays quiet and does not become a flower bed.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 88
-	for i in 9:
+	for i in 4:
 		var ang := rng.randf() * TAU
 		var r := rng.randf_range(1.8, 6.3)
 		var p := Vector3(cos(ang) * r, 0.0, sin(ang) * r)
 		if p.z < -0.5 and p.x > -6.0 and p.x < 2.6:
 			continue
-		k.flowers(p + Vector3(0.0, 0.02, 0.0), rng.randf_range(0.065, 0.095), rng.randf() * TAU)
+		k.flowers(p + Vector3(0.0, 0.02, 0.0), rng.randf_range(0.09, 0.13), rng.randf() * TAU, i + 6)
 	k.landmark = Vector3(0.0, 0.0, -3.2)
 
 

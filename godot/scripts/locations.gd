@@ -88,13 +88,13 @@ static func origin(k: K) -> void:
 	k.box(Vector3(4.8, 1.75, 3.2), Vector3(2.5, 0.25, 2.1), CORAL)
 	k.screen(Vector3(4.8, 0.95, 2.2), Vector2(1.2, 0.7), YELLOW, Vector3(0.0, 0.0, 0.0), 2)
 
-	# Reused flower-composition instances give the forest a readable garden edge.
+	# A few individual flowers soften the forest edge without turning it into a flower bed.
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 77
-	for i in 10:
+	for i in 5:
 		var ang := rng.randf() * TAU
 		var r := rng.randf_range(1.6, 6.2)
-		k.flowers(Vector3(cos(ang) * r, 0.02, sin(ang) * r), rng.randf_range(0.065, 0.095), rng.randf() * TAU)
+		k.flowers(Vector3(cos(ang) * r, 0.02, sin(ang) * r), rng.randf_range(0.09, 0.13), rng.randf() * TAU, i)
 
 	k.sign(Vector3(0.0, 9.6, -4.5), "ORIGIN", 46, K.WHITE)
 	k.landmark = Vector3(0.0, 0.0, -4.5)
