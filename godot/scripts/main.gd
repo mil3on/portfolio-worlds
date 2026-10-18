@@ -18,6 +18,7 @@ const AMBIENT_STREAM := preload("res://assets/audio/background-sounds.mp3")
 const STEP_STREAM := preload("res://assets/audio/footstep-on-grass.mp3")
 const USE_STREAM := preload("res://assets/audio/use-case.mp3")
 const LOCK_ICON := preload("res://assets/ui/lock.svg")
+const FLOWERS_SCENE := preload("res://assets/library/user/flowers_pack_1.glb")
 
 const DEFAULT_INTERACT_RADIUS := 2.5
 
@@ -78,6 +79,7 @@ func _ready() -> void:
 		_env.glow_intensity *= 0.32
 		_env.glow_bloom = minf(_env.glow_bloom, 0.03)
 		_env.glow_hdr_threshold = maxf(_env.glow_hdr_threshold, 1.35)
+	_make_night_side()
 
 
 func _setup_audio() -> void:
@@ -409,13 +411,13 @@ func _scatter() -> void:
 		if not _claim(taken, dir, 0.48):
 			continue
 		_place(_grass_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.75, 1.18), 0.0)
-	for i in 52:
+	for i in 18:
 		var dir := _rand_dir(rng)
 		if _too_close(dir, 0.31) or planet.height_at(dir) <= planet.water_level() + 0.16:
 			continue
 		if not _claim(taken, dir, 0.72):
 			continue
-		_place(_flower_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.72, 1.12), 0.0)
+		_place(_flower_clump(rng), dir, rng.randf() * TAU, rng.randf_range(0.06, 0.10), 0.0)
 
 
 func _grass_clump(rng: RandomNumberGenerator) -> Node3D:
@@ -434,20 +436,106 @@ func _grass_clump(rng: RandomNumberGenerator) -> Node3D:
 
 
 func _flower_clump(rng: RandomNumberGenerator) -> Node3D:
-	var root := _grass_clump(rng)
-	var colors := [Color("f4d65d"), Color("f18ba2"), Color("8bbcff"), Color("f4f1dc")]
-	for i in 3:
-		var bloom := MeshInstance3D.new()
-		var mesh := SphereMesh.new()
-		mesh.radius = 0.075
-		mesh.height = 0.15
-		mesh.radial_segments = 8
-		mesh.rings = 4
-		mesh.material = _mat(colors[rng.randi_range(0, colors.size() - 1)], 0.15)
-		bloom.mesh = mesh
-		bloom.position = Vector3(rng.randf_range(-0.2, 0.2), rng.randf_range(0.20, 0.34), rng.randf_range(-0.2, 0.2))
-		bloom.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-		root.add_child(bloom)
+	var root := FLOWERS_SCENE.instantiate() as Node3D
+	root.name = "FlowersPack"
+	# The model is reused as an instanced scene; only its transforms vary across the planet.
+	for n in _all_meshes(root):
+		n.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	return root
+
+
+func _all_meshes(root: Node) -> Array[MeshInstance3D]:
+	var meshes: Array[MeshInstance3D] = []
+	for child in root.get_children():
+		if child is MeshInstance3D:
+			meshes.append(child as MeshInstance3D)
+		meshes.append_array(_all_meshes(child))
+	return meshes
+
+
+func _make_night_side() -> void:
+	# The moon and its cool directional fill stay fixed, opposite the sun. The warm
+	# lanterns make the night hemisphere navigable without flattening the day-side light.
+	var sun_dir := Vector3(0.45, -0.72, 0.52).normalized()
+	if _sun:
+		sun_dir = -_sun.global_transform.basis.z.normalized()
+	var moon_dir := -sun_dir
+	var moon := Node3D.new()
+	moon.name = "Moon"
+	add_child(moon)
+	moon.global_position = planet.global_position + moon_dir * 66.0
+	var moon_mesh := MeshInstance3D.new()
+	var moon_sphere := SphereMesh.new()
+	moon_sphere.radius = 4.2
+	moon_sphere.height = 8.4
+	moon_sphere.radial_segments = 24
+	moon_sphere.rings = 12
+	moon_mesh.mesh = moon_sphere
+	moon_mesh.material_override = _mat(Color("dce8ff"), 0.24)
+	moon_mesh.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	moon.add_child(moon_mesh)
+	for p in [Vector3(-1.4, 0.8, -3.5), Vector3(1.8, -1.0, -3.6), Vector3(0.2, 1.9, -3.7)]:
+		var crater := MeshInstance3D.new()
+		var crater_mesh := SphereMesh.new()
+		crater_mesh.radius = 0.42
+		crater_mesh.height = 0.16
+		crater_mesh.radial_segments = 12
+		crater.mesh = crater_mesh
+		crater.material_override = _mat(Color("aebbd1"))
+		crater.position = p
+		crater.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		moon.add_child(crater)
+	var moonlight := DirectionalLight3D.new()
+	moonlight.name = "Moonlight"
+	moonlight.light_color = Color("9bb8ff")
+	moonlight.light_energy = 0.23
+	moonlight.shadow_enabled = false
+	moonlight.look_at_from_position(Vector3.ZERO, -moon_dir, Vector3.UP)
+	add_child(moonlight)
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 88
+	var placed := 0
+	var tries := 0
+	while placed < 14 and tries < 240:
+		tries += 1
+		var dir := _rand_dir(rng)
+		if dir.dot(moon_dir) < 0.28 or _too_close(dir, 0.22):
+			continue
+		if planet.height_at(dir) <= planet.water_level() + 0.18:
+			continue
+		_place(_night_lantern(), dir, rng.randf() * TAU, rng.randf_range(0.75, 1.05), 0.0)
+		placed += 1
+
+
+func _night_lantern() -> Node3D:
+	var root := Node3D.new()
+	var post := MeshInstance3D.new()
+	var post_mesh := CylinderMesh.new()
+	post_mesh.top_radius = 0.07
+	post_mesh.bottom_radius = 0.09
+	post_mesh.height = 1.7
+	post_mesh.radial_segments = 8
+	post.mesh = post_mesh
+	post.material_override = _mat(Color("49372f"))
+	post.position.y = 0.85
+	root.add_child(post)
+	var glow := MeshInstance3D.new()
+	var glow_mesh := SphereMesh.new()
+	glow_mesh.radius = 0.20
+	glow_mesh.height = 0.40
+	glow_mesh.radial_segments = 10
+	glow.mesh = glow_mesh
+	glow.material_override = _mat(Color("ffcb70"), 1.9)
+	glow.position.y = 1.72
+	glow.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	root.add_child(glow)
+	var light := OmniLight3D.new()
+	light.light_color = Color("ffcf85")
+	light.light_energy = 0.7
+	light.omni_range = 4.0
+	light.shadow_enabled = false
+	light.position.y = 1.65
+	root.add_child(light)
 	return root
 
 

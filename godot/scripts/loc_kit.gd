@@ -8,6 +8,7 @@ class_name LocKit
 
 const AURA := preload("res://starter/shader-healing-aura/healing_aura.tscn")
 const Fonts := preload("res://starter/ui-fonts/fonts.gd")
+const FLOWERS := preload("res://assets/library/user/flowers_pack_1.glb")
 
 const CREAM := Color(0.95, 0.92, 0.85)
 const WOOD := Color(0.55, 0.37, 0.23)
@@ -61,6 +62,18 @@ static func _textures() -> void:
 func begin(r: Node3D, accent_color: Color) -> void:
 	root = r
 	accent = accent_color
+
+
+## The supplied Sketchfab flower composition is instanced at a deliberately small scale.
+## It stays one shared packed scene rather than duplicating its meshes and textures.
+func flowers(pos: Vector3, scale := 0.08, yaw := 0.0) -> Node3D:
+	var plant := FLOWERS.instantiate() as Node3D
+	plant.name = "FlowersPack"
+	plant.position = pos
+	plant.rotation.y = yaw
+	plant.scale = Vector3.ONE * scale
+	root.add_child(plant)
+	return plant
 
 
 func result() -> Dictionary:

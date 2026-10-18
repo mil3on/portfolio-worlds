@@ -4,11 +4,10 @@ shader_type canvas_item;
 uniform sampler2D screen_texture : hint_screen_texture, filter_linear_mipmap;
 
 void fragment() {
-	vec2 p = UV - vec2(0.5);
-	vec2 q = abs(p) - vec2(0.42, 0.44);
-	if (length(max(q, vec2(0.0))) > 0.08) {
-		discard;
-	}
+	// The left edge deliberately runs off-screen. Only the two right corners round off.
+	float r = 0.095;
+	if (UV.x > 1.0 - r && UV.y < r && length(UV - vec2(1.0 - r, r)) > r) discard;
+	if (UV.x > 1.0 - r && UV.y > 1.0 - r && length(UV - vec2(1.0 - r, 1.0 - r)) > r) discard;
 	vec4 scene = textureLod(screen_texture, SCREEN_UV, 4.5);
 	COLOR = vec4(mix(scene.rgb, vec3(1.0), 0.72), 0.88);
 }

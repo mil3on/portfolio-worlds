@@ -28,6 +28,7 @@ var _toast_tween: Tween
 func _ready() -> void:
 	layer = 10
 	_build_corner()
+	_build_controls()
 	_build_prompt()
 	_build_toast()
 	_build_button()
@@ -60,8 +61,10 @@ func _label(text: String, size: int, color: Color, font: Font) -> Label:
 
 func _build_corner() -> void:
 	var menu_root := Control.new()
-	menu_root.position = Vector2(24, 24)
+	# It intentionally starts beyond the left edge: only its rounded right part is visible.
+	menu_root.position = Vector2(-6, 18)
 	menu_root.size = Vector2(292, 390)
+	menu_root.scale = Vector2(0.5, 0.5)
 	menu_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(menu_root)
 	var blur := ColorRect.new()
@@ -72,7 +75,7 @@ func _build_corner() -> void:
 	blur.material = blur_material
 	menu_root.add_child(blur)
 	var box := PanelContainer.new()
-	box.add_theme_stylebox_override("panel", _style(Color(1, 1, 1, 0.18), 28, 0))
+	box.add_theme_stylebox_override("panel", _menu_body_style())
 	box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	menu_root.add_child(box)
@@ -106,13 +109,18 @@ func _build_corner() -> void:
 	_progress.add_theme_constant_override("separation", 10)
 	body.add_child(_progress)
 
-	var hint := _label("WASD — ходьба   Shift — бег   Пробел — прыжок   E — открыть", 14, Color(0.05, 0.06, 0.08, 0.86), MANROPE)
-	hint.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	hint.offset_top = -44
-	hint.offset_bottom = -20
-	hint.offset_left = 24
-	add_child(hint)
+
+
+func _menu_body_style() -> StyleBoxFlat:
+	var s := StyleBoxFlat.new()
+	# The glass itself is rendered by menu_blur.gdshader. This panel only clips the
+	# content to the intended silhouette, avoiding a second rounded outer frame.
+	s.bg_color = Color(1, 1, 1, 0.12)
+	s.corner_radius_top_left = 0
+	s.corner_radius_bottom_left = 0
+	s.corner_radius_top_right = 28
+	s.corner_radius_bottom_right = 28
+	return s
 
 
 func _menu_header_style() -> StyleBoxFlat:
@@ -127,6 +135,62 @@ func _menu_header_style() -> StyleBoxFlat:
 	s.content_margin_top = 14
 	s.content_margin_bottom = 14
 	return s
+
+
+func _build_controls() -> void:
+	var controls := HBoxContainer.new()
+	controls.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	controls.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	controls.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	controls.offset_right = -24
+	controls.offset_bottom = -24
+	controls.add_theme_constant_override("separation", 10)
+	controls.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	controls.add_child(_control_chip(["W", "A", "S", "D"], "двигаться", 179))
+	controls.add_child(_control_chip(["Shift"], "бежать", 161))
+	controls.add_child(_control_chip(["E"], "использовать", 161))
+	add_child(controls)
+
+
+func _control_chip(keys: Array[String], caption: String, width: float) -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.custom_minimum_size = Vector2(width, 41)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color("050505")
+	style.set_corner_radius_all(16)
+	style.content_margin_left = 10
+	style.content_margin_right = 14
+	chip.add_theme_stylebox_override("panel", style)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 8)
+	chip.add_child(row)
+	var key_row := HBoxContainer.new()
+	key_row.add_theme_constant_override("separation", 3)
+	row.add_child(key_row)
+	for key in keys:
+		key_row.add_child(_keycap(key))
+	var text := _label(caption, 14, Color.WHITE, MANROPE)
+	text.add_theme_font_size_override("font_size", 14)
+	text.add_theme_color_override("font_color", Color.WHITE)
+	row.add_child(text)
+	return chip
+
+
+func _keycap(key: String) -> PanelContainer:
+	var cap := PanelContainer.new()
+	cap.custom_minimum_size = Vector2(42 if key == "Shift" else 20, 20)
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color.WHITE
+	style.set_corner_radius_all(2)
+	style.content_margin_left = 3
+	style.content_margin_right = 3
+	cap.add_theme_stylebox_override("panel", style)
+	var text := _label(key, 11 if key == "Shift" else 12, Color.BLACK, MANROPE)
+	text.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	text.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	cap.add_child(text)
+	return cap
 
 
 func _build_prompt() -> void:
@@ -230,7 +294,8 @@ func set_case_progress(cases: Array, discovered: Dictionary) -> void:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.position = Vector2(0, 4)
-		icon.size = Vector2(16, 16)
+		icon.size = Vector2(18, 18)
+		icon.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		row.add_child(icon)
 		var text := _label(String(data["title"]), 20, Color("666666") if done else Color("171719"), MANROPE)
 		text.position = Vector2(27, 0)
