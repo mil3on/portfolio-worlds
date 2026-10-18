@@ -440,7 +440,10 @@ func _make_night_side() -> void:
 	var sun_dir := Vector3(0.45, -0.72, 0.52).normalized()
 	if _sun:
 		sun_dir = -_sun.global_transform.basis.z.normalized()
-	_moon_dir = -sun_dir
+	# DirectionalLight3D stores the direction of the light rays, not the position of
+	# the sun. The moon therefore belongs on that ray direction: the hemisphere opposite
+	# the visible sun, while the Origin spawn remains on the warm day side.
+	_moon_dir = sun_dir
 	_moon_orbit_axis = _moon_dir.cross(Vector3.UP)
 	if _moon_orbit_axis.length_squared() < 0.01:
 		_moon_orbit_axis = Vector3.RIGHT
