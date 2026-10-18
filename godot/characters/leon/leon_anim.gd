@@ -52,6 +52,9 @@ var _interaction_left := 0.0
 var _idle_variation_left := 0.0
 var _idle_variation_active := false
 var _random := RandomNumberGenerator.new()
+var _riding := false
+var _left_ik: SkeletonIK3D
+var _right_ik: SkeletonIK3D
 
 
 func _ready() -> void:
@@ -110,7 +113,7 @@ func _schedule_idle_variation() -> void:
 
 
 func _update_idle_variation(delta: float) -> void:
-	if anim == null or _loco != "idle" or _interaction_left > 0.0:
+	if anim == null or _riding or _loco != "idle" or _interaction_left > 0.0:
 		return
 	if _idle_variation_active:
 		if not anim.is_playing():
@@ -134,9 +137,67 @@ func _update_idle_variation(delta: float) -> void:
 
 ## Called by res://scripts/player.gd every physics frame.
 func set_move_speed(speed: float, on_floor := true) -> void:
-	_speed = speed
+	_speed = 0.0 if _riding else speed
 	_on_floor = on_floor
 	_update_locomotion()
+
+
+## Keeps the standard idle animation for the rider while IK reaches both hands to
+## the scooter grips. The target nodes live on the steering fork, so the hands turn
+## with it instead of staying frozen in world space.
+func set_riding(enabled: bool, left_handle: Node3D = null, right_handle: Node3D = null) -> void:
+	_riding = enabled
+	_idle_variation_active = false
+	_interaction_left = 0.0
+	if not enabled:
+		_clear_rider_ik()
+		return
+	_set_loco("idle")
+	if left_handle and right_handle:
+		_make_rider_ik(left_handle, right_handle)
+
+
+func _make_rider_ik(left_target: Node3D, right_target: Node3D) -> void:
+	_clear_rider_ik()
+	var skeleton := _first_skeleton(self)
+	if skeleton == null:
+		return
+	_left_ik = _create_arm_ik(skeleton, "LeftArm", "LeftHand", left_target, "ScooterLeftArmIK")
+	_right_ik = _create_arm_ik(skeleton, "RightArm", "RightHand", right_target, "ScooterRightArmIK")
+
+
+func _create_arm_ik(skeleton: Skeleton3D, root_suffix: String, tip_suffix: String, target: Node3D, ik_name: String) -> SkeletonIK3D:
+	var root := _bone_ending_with(skeleton, root_suffix)
+	var tip := _bone_ending_with(skeleton, tip_suffix)
+	if root == "" or tip == "":
+		return null
+	var ik := SkeletonIK3D.new()
+	ik.name = ik_name
+	ik.root_bone = root
+	ik.tip_bone = tip
+	ik.interpolation = 1.0
+	ik.override_tip_basis = true
+	skeleton.add_child(ik)
+	ik.target_node = ik.get_path_to(target)
+	ik.start()
+	return ik
+
+
+func _bone_ending_with(skeleton: Skeleton3D, suffix: String) -> String:
+	for i in skeleton.get_bone_count():
+		var bone := String(skeleton.get_bone_name(i))
+		if bone == "mixamorig_" + suffix or bone == "mixamorig:" + suffix or bone.ends_with(suffix):
+			return bone
+	return ""
+
+
+func _clear_rider_ik() -> void:
+	for ik in [_left_ik, _right_ik]:
+		if is_instance_valid(ik):
+			ik.stop()
+			ik.queue_free()
+	_left_ik = null
+	_right_ik = null
 
 
 ## Current locomotion state: "idle", "walk", "run", "jump" or "fall".

@@ -14,6 +14,8 @@ signal stepped(world_pos: Vector3, up: Vector3, running: bool)
 @export var mouse_sensitivity := 0.0025
 
 var input_enabled := true
+var _scooter: Node3D
+var _collision_was_disabled := false
 
 @onready var cam_yaw: Node3D = $CameraYaw
 @onready var spring: SpringArm3D = $CameraYaw/CameraPitch/SpringArm3D
@@ -37,6 +39,29 @@ func _ready() -> void:
 func play_interaction() -> void:
 	if model.has_method("play_interaction"):
 		model.play_interaction()
+
+
+func mount_scooter(scooter: Node3D, left_handle: Node3D, right_handle: Node3D) -> void:
+	_scooter = scooter
+	_collision_was_disabled = $Collision.disabled
+	$Collision.set_deferred("disabled", true)
+	velocity = Vector3.ZERO
+	model.rotation.y = 0.0
+	if model.has_method("set_riding"):
+		model.set_riding(true, left_handle, right_handle)
+
+
+func dismount_scooter(scooter: Node3D) -> void:
+	if _scooter != scooter:
+		return
+	var up := scooter.global_basis.y.normalized()
+	var right := scooter.global_basis.x.normalized()
+	global_position = scooter.global_position + right * 0.85 + up * 0.32
+	global_basis = scooter.global_basis
+	_scooter = null
+	$Collision.set_deferred("disabled", _collision_was_disabled)
+	if model.has_method("set_riding"):
+		model.set_riding(false)
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -67,6 +92,13 @@ func _align() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _scooter != null:
+		global_transform = _scooter.call("rider_transform")
+		up_direction = global_basis.y.normalized()
+		velocity = Vector3.ZERO
+		if model.has_method("set_move_speed"):
+			model.set_move_speed(0.0, true)
+		return
 	_align()
 	var up := up_direction
 	var vert := velocity.dot(up)

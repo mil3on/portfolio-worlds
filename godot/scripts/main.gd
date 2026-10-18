@@ -18,8 +18,10 @@ const AMBIENT_STREAM := preload("res://assets/audio/background-sounds.mp3")
 const STEP_STREAM := preload("res://assets/audio/footstep-on-grass.mp3")
 const USE_STREAM := preload("res://assets/audio/use-case.mp3")
 const LOCK_ICON := preload("res://assets/ui/lock.svg")
+const Scooter := preload("res://scripts/scooter.gd")
 
 const DEFAULT_INTERACT_RADIUS := 2.5
+const SCOOTER_INTERACT_RADIUS := 2.35
 
 @onready var planet: StaticBody3D = $Planet
 @onready var player: CharacterBody3D = $Player
@@ -44,12 +46,16 @@ var _ambient_audio: AudioStreamPlayer
 var _step_audio: AudioStreamPlayer
 var _use_audio: AudioStreamPlayer
 var _opening_case := false
+var _scooter: Node3D
+var _scooter_dir := Vector3.ZERO
 
 
 func _ready() -> void:
 	_flat_dirs.append(Vector3.UP)
 	for d: Dictionary in CaseStudies.LOCATIONS:
 		_flat_dirs.append((d["position"] as Vector3).normalized())
+	_scooter_dir = _pick_scooter_dir()
+	_flat_dirs.append(_scooter_dir)
 	planet.flat_dirs = _flat_dirs
 	planet.sea_dir = CaseStudies.SEA_DIR.normalized()
 
@@ -57,6 +63,7 @@ func _ready() -> void:
 	for d: Dictionary in CaseStudies.LOCATIONS:
 		_make_location(d)
 	planet.build()
+	_make_scooter()
 	_scatter()
 	_make_clouds()
 
@@ -143,6 +150,36 @@ func _claim(taken: Array, dir: Vector3, radius_m: float) -> bool:
 
 func _rand_dir(rng: RandomNumberGenerator) -> Vector3:
 	return Vector3(rng.randfn(), rng.randfn(), rng.randfn()).normalized()
+
+
+## One deterministic random pick keeps the scooter in a reachable grass clearing
+## after reloads, without putting it into a case-study footprint or the sea.
+func _pick_scooter_dir() -> Vector3:
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 3301
+	var origin := (CaseStudies.LOCATIONS[0]["position"] as Vector3).normalized()
+	for attempt in 80:
+		var d := _rand_dir(rng)
+		if d.y < 0.25 or d.angle_to(origin) < 0.29 or d.angle_to(origin) > 0.56:
+			continue
+		if d.angle_to(CaseStudies.SEA_DIR.normalized()) < 0.72:
+			continue
+		var free := true
+		for loc: Dictionary in CaseStudies.LOCATIONS:
+			if d.angle_to((loc["position"] as Vector3).normalized()) < 0.48:
+				free = false
+				break
+		if free:
+			return d
+	return Vector3(0.42, 0.78, 0.46).normalized()
+
+
+func _make_scooter() -> void:
+	_scooter = Scooter.new()
+	_scooter.name = "ElectricScooter"
+	decor.add_child(_scooter)
+	_scooter.setup(planet, player)
+	_scooter.place_on_planet(_scooter_dir, 0.7)
 
 
 func _lib(file: String) -> Node3D:
@@ -589,7 +626,11 @@ func _process(delta: float) -> void:
 			best_d = dist
 			best = i
 	_near = best
-	if best >= 0:
+	var scooter_near := _scooter != null and (bool(_scooter.get("active")) or player.global_position.distance_to(_scooter.global_position) <= SCOOTER_INTERACT_RADIUS)
+	if scooter_near:
+		var riding := bool(_scooter.get("active"))
+		hud.show_prompt("Электросамокат", "E - " + ("Слезть" if riding else "Поехать"))
+	elif best >= 0:
 		hud.show_prompt(String(_locations[best]["data"]["title"]), String(_locations[best]["data"]["interactionLabel"]))
 	else:
 		hud.hide_prompt()
@@ -631,14 +672,30 @@ func _update_night_sky() -> void:
 
 
 func _unhandled_input(event: InputEvent) -> void:
-	if event.is_action_pressed("interact") and _near >= 0:
-		_open(_near)
+	if event.is_action_pressed("interact"):
+		if _scooter and (bool(_scooter.get("active")) or player.global_position.distance_to(_scooter.global_position) <= SCOOTER_INTERACT_RADIUS):
+			_toggle_scooter()
+		elif _near >= 0:
+			_open(_near)
 		get_viewport().set_input_as_handled()
 
 
 func _on_open_requested() -> void:
-	if _near >= 0:
+	if _scooter and (bool(_scooter.get("active")) or player.global_position.distance_to(_scooter.global_position) <= SCOOTER_INTERACT_RADIUS):
+		_toggle_scooter()
+	elif _near >= 0:
 		_open(_near)
+
+
+func _toggle_scooter() -> void:
+	if _opening_case or _scooter == null:
+		return
+	if bool(_scooter.get("active")):
+		_scooter.call("dismount")
+		hud.flash("Слез с электросамоката")
+	else:
+		_scooter.call("mount")
+		hud.flash("WASD — ехать, E — слезть")
 
 
 ## Opens the case study in a new browser tab. No overlay, no scene change.
